@@ -69,7 +69,7 @@ function SamplePost() {
   return (
     <article className="overflow-hidden rounded-xl border bg-card shadow-sm">
       <div className="flex items-center gap-3 p-4 pb-0">
-        <span className="grid size-10 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">NG</span>
+        <span className="grid size-10 place-items-center rounded-[20%] bg-primary/10 text-xs font-semibold text-primary">NG</span>
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold">Northwind Games</span>
           <span className="block truncate text-xs text-muted-foreground">Studio page · Example</span>
