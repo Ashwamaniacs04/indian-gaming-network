@@ -1,10 +1,11 @@
 import Link from "next/link"
+import { Heart, MessageCircle, Play } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PersonLink } from "@/components/person"
 import { addComment, deleteComment, deletePost, toggleLike } from "@/server/actions/posts"
 import { expressInterest } from "@/server/actions/social"
-import { JOB_TYPE_LABELS, postTypeLabel, roleLabel } from "@/lib/constants"
+import { JOB_TYPE_LABELS, roleLabel } from "@/lib/constants"
 import { formatWhen, publicStorageUrl } from "@/lib/format"
 import type { CommentItem, PostCard as PostCardData, Viewer } from "@/lib/types"
 import { youtubeId, youtubeThumbnail } from "@/lib/youtube"
@@ -30,74 +31,121 @@ export function PostCard({
   const image = publicStorageUrl("posts", post.image_path)
   const thumb = post.youtube_url ? youtubeThumbnail(post.youtube_url) : null
   const owned = viewer?.profile.username === post.author.username
+  const video = youtubeCopy(post.body)
 
   return (
-    <article className="rounded-xl border bg-card p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
+    <article className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="p-4 pb-0">
         <PersonLink href={authorHref} name={authorName} path={authorPath} meta={meta} />
-        <Badge variant="secondary">{postTypeLabel(post.post_type)}</Badge>
       </div>
 
+      {post.post_type === "image" ? (
+        <>
+          {image ? (
+            detailed ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={image} alt="" className="mt-3 max-h-[420px] w-full object-cover" />
+            ) : (
+              <Link href={`/post/${post.id}`} className="mt-3 block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={image} alt="" className="max-h-[420px] w-full object-cover" />
+              </Link>
+            )
+          ) : null}
+          {post.body ? (
+            <p className={`px-4 pt-3 text-sm leading-6 whitespace-pre-wrap ${detailed ? "" : "line-clamp-4"}`}>{post.body}</p>
+          ) : null}
+        </>
+      ) : null}
+
+      {post.post_type === "youtube" && post.youtube_url ? (
+        <div>
+          {detailed && youtubeId(post.youtube_url) ? (
+            <iframe
+              className="mt-3 aspect-video w-full"
+              src={`https://www.youtube-nocookie.com/embed/${youtubeId(post.youtube_url)}`}
+              title={video.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : thumb ? (
+            <a href={post.youtube_url} target="_blank" rel="noreferrer" className="relative mt-3 block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={thumb} alt="" className="aspect-video w-full object-cover" />
+              <span className="absolute inset-0 grid place-items-center">
+                <span className="grid size-12 place-items-center rounded-full bg-white text-primary shadow-sm">
+                  <Play className="size-5 fill-current" />
+                </span>
+              </span>
+            </a>
+          ) : null}
+          <div className="px-4 pt-3">
+            <h2 className={`text-base font-semibold ${detailed ? "" : "line-clamp-2"}`}>{video.title}</h2>
+            {video.note ? (
+              <p className={`mt-1 text-sm leading-6 whitespace-pre-wrap text-muted-foreground ${detailed ? "" : "line-clamp-3"}`}>{video.note}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       {post.post_type === "job" && post.job_title ? (
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold">{post.job_title}</h2>
+        <div className="px-4 pt-4">
+          <h2 className="text-lg font-semibold">
+            {detailed ? post.job_title : <Link href={`/post/${post.id}`} className="hover:underline">{post.job_title}</Link>}
+          </h2>
           <p className="text-sm text-muted-foreground">
             {[post.job_type ? JOB_TYPE_LABELS[post.job_type] : null, post.job_location].filter(Boolean).join(" · ")}
           </p>
+          {post.body ? (
+            <p className={`mt-3 text-sm leading-6 whitespace-pre-wrap ${detailed ? "" : "line-clamp-3"}`}>{post.body}</p>
+          ) : null}
         </div>
       ) : null}
 
       {post.post_type === "collab" && post.collab_title ? (
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold">{post.collab_title}</h2>
-          <p className="text-sm text-muted-foreground">
-            {[post.game_title, post.collab_looking_for.join(", ")].filter(Boolean).join(" · ")}
-          </p>
+        <div className="px-4 pt-4">
+          <h2 className="text-lg font-semibold">
+            {detailed ? post.collab_title : <Link href={`/post/${post.id}`} className="hover:underline">{post.collab_title}</Link>}
+          </h2>
+          {post.game_title ? <p className="text-sm text-muted-foreground">{post.game_title}</p> : null}
+          {post.collab_looking_for.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {post.collab_looking_for.map((role) => (
+                <Badge key={role} variant="secondary">{role}</Badge>
+              ))}
+            </div>
+          ) : null}
+          {post.body ? (
+            <p className={`mt-3 text-sm leading-6 whitespace-pre-wrap ${detailed ? "" : "line-clamp-3"}`}>{post.body}</p>
+          ) : null}
         </div>
       ) : null}
 
-      {post.body ? (
-        <p className={`mt-3 text-sm leading-6 whitespace-pre-wrap ${detailed ? "" : "line-clamp-6"}`}>{post.body}</p>
-      ) : null}
-
-      {image ? (
-        // User uploads are served from the project's Supabase storage host.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt="" className="mt-3 max-h-[420px] w-full rounded-lg object-cover" />
-      ) : null}
-
-      {thumb && post.youtube_url ? (
-        detailed && youtubeId(post.youtube_url) ? (
-          <iframe
-            className="mt-3 aspect-video w-full rounded-lg"
-            src={`https://www.youtube-nocookie.com/embed/${youtubeId(post.youtube_url)}`}
-            title="YouTube video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        ) : (
-          <a href={post.youtube_url} target="_blank" rel="noreferrer" className="mt-3 block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={thumb} alt="" className="aspect-video w-full rounded-lg object-cover" />
-          </a>
-        )
-      ) : null}
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t px-4 py-2">
         {viewer ? (
           <form action={toggleLike}>
             <input type="hidden" name="post_id" value={post.id} />
-            <Button type="submit" variant={post.liked_by_me ? "default" : "outline"} size="sm">
-              {post.liked_by_me ? "Liked" : "Like"} · {post.like_count}
+            <Button type="submit" variant="ghost" size="sm" className={post.liked_by_me ? "text-primary" : ""}>
+              <Heart className={`size-4 ${post.liked_by_me ? "fill-current" : ""}`} />
+              {post.liked_by_me ? "Liked" : "Like"}
+              <span className="text-muted-foreground">{post.like_count}</span>
             </Button>
           </form>
         ) : (
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/login">Like · {post.like_count}</Link>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/login">
+              <Heart className="size-4" />
+              Like
+              <span className="text-muted-foreground">{post.like_count}</span>
+            </Link>
           </Button>
         )}
         <Button variant="ghost" size="sm" asChild>
-          <Link href={`/post/${post.id}`}>Comments · {post.comment_count}</Link>
+          <Link href={`/post/${post.id}`}>
+            <MessageCircle className="size-4" />
+            Comment
+            <span className="text-muted-foreground">{post.comment_count}</span>
+          </Link>
         </Button>
         {owned && detailed ? (
           <form action={deletePost}>
@@ -110,10 +158,23 @@ export function PostCard({
       </div>
 
       {(detailed || showInterest) && !owned && (post.post_type === "job" || post.post_type === "collab") ? (
-        <InterestBox postId={post.id} signedIn={Boolean(viewer)} />
+        <div className="px-4 pb-4">
+          <InterestBox postId={post.id} signedIn={Boolean(viewer)} />
+        </div>
       ) : null}
     </article>
   )
+}
+
+function youtubeCopy(body: string) {
+  const trimmed = body.trim()
+  if (!trimmed) return { title: "YouTube video", note: "" }
+  const newline = trimmed.indexOf("\n")
+  if (newline === -1) return { title: trimmed, note: "" }
+  return {
+    title: trimmed.slice(0, newline).trim() || "YouTube video",
+    note: trimmed.slice(newline + 1).trim(),
+  }
 }
 
 function InterestBox({ postId, signedIn }: { postId: string; signedIn: boolean }) {
@@ -146,7 +207,7 @@ export function CommentList({
     <section className="rounded-xl border bg-card p-4 shadow-sm">
       <h2 className="text-sm font-semibold">Comments</h2>
       <div className="mt-3 space-y-4">
-        {comments.length === 0 ? <p className="text-sm text-muted-foreground">No comments yet.</p> : null}
+        {comments.length === 0 ? <p className="text-sm text-muted-foreground">No comments yet. Be the first to reply.</p> : null}
         {comments.map((comment) => (
           <div key={comment.id} className="flex gap-3">
             <div className="min-w-0 flex-1">

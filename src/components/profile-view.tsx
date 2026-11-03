@@ -29,23 +29,25 @@ export function ProfileView({
   return (
     <div className="space-y-4">
       <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
-        <div className="h-32 bg-gradient-to-r from-blue-800 to-sky-500 sm:h-40">
+        <div className="h-36 bg-gradient-to-r from-blue-800 to-sky-500 sm:h-44">
           {banner ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={banner} alt="" className="h-full w-full object-cover" />
           ) : null}
         </div>
         <div className="px-4 pb-5">
-          <div className="-mt-8 flex items-end justify-between gap-3">
-            <UserAvatar name={profile.display_name} path={profile.avatar_path} className="size-20 ring-4 ring-card" />
+          <UserAvatar name={profile.display_name} path={profile.avatar_path} className="-mt-10 size-20 bg-card ring-4 ring-white" />
+          <div className="mt-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold">{profile.display_name}</h1>
+              <p className="text-sm text-muted-foreground">@{profile.username}</p>
+            </div>
             {isOwner ? (
               <Button variant="outline" size="sm" asChild><Link href="/settings">Edit profile</Link></Button>
             ) : null}
           </div>
-          <h1 className="mt-3 text-2xl font-semibold">{profile.display_name}</h1>
-          <p className="text-sm text-muted-foreground">@{profile.username}</p>
           {profile.headline ? <p className="mt-2 text-sm">{profile.headline}</p> : null}
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <Badge>{roleLabel(profile.role)}</Badge>
             {locationLabel(profile.city, profile.state) ? <Badge variant="outline">{locationLabel(profile.city, profile.state)}</Badge> : null}
             {profile.availability ? <Badge variant="secondary">{profile.availability}</Badge> : null}
@@ -74,16 +76,18 @@ export function ProfileView({
       {(profile.role === "cosplay_artist" || profile.role === "streamer" || portfolio.length > 0) ? (
         <section className="rounded-xl border bg-card p-4">
           <h2 className="text-sm font-semibold">Showcase</h2>
-          {portfolio.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">No showcase items yet.</p> : (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {portfolio.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">{isOwner ? "Add a showcase image from Settings so people can see your work." : "No showcase images yet."}</p> : (
+            <div className="mt-3 grid grid-cols-2 gap-3">
               {portfolio.map((item) => {
                 const media = publicStorageUrl("portfolio", item.media_path)
                 return (
                   <article key={item.id} className="overflow-hidden rounded-lg border">
-                    {media ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={media} alt="" className="aspect-video w-full object-cover" />
-                    ) : null}
+                    <div className="aspect-[4/3] bg-muted">
+                      {media ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={media} alt="" className="size-full object-cover" />
+                      ) : null}
+                    </div>
                     <div className="p-3">
                       <h3 className="text-sm font-medium">{item.title}</h3>
                       {item.caption ? <p className="mt-1 text-xs text-muted-foreground">{item.caption}</p> : null}
@@ -130,7 +134,7 @@ export function ProfileView({
       </section>
 
       <div className="space-y-3">
-        {posts.length === 0 ? <EmptyState title="No posts yet" body="Posts from this profile will show up here." /> : posts.map((post) => <PostCard key={post.id} post={post} viewer={viewer} />)}
+        {posts.length === 0 ? <EmptyState title="No posts yet" body={isOwner ? "Publish an image, video, job, or collab from the feed so it shows up here." : "This profile has not published a post yet."} /> : posts.map((post) => <PostCard key={post.id} post={post} viewer={viewer} />)}
       </div>
     </div>
   )

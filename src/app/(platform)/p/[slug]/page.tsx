@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PostCard } from "@/components/post-card"
-import { UserAvatar } from "@/components/person"
+import { EmptyState, UserAvatar } from "@/components/person"
 import { followPage, unfollowPage, expressInterest } from "@/server/actions/social"
 import { ActionForm, AreaField, SubmitButton } from "@/components/form-kit"
 import { getViewer } from "@/lib/auth"
@@ -40,16 +40,21 @@ async function PageView({ params }: { params: Promise<{ slug: string }> }) {
   return (
     <div className="space-y-4">
       <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
-        <div className="h-32 bg-gradient-to-r from-blue-900 to-blue-500 sm:h-40">
+        <div className="h-36 bg-gradient-to-r from-blue-800 to-sky-500 sm:h-44">
           {banner ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={banner} alt="" className="h-full w-full object-cover" />
           ) : null}
         </div>
         <div className="px-4 pb-5">
-          <div className="-mt-8 flex items-end justify-between gap-3">
-            <UserAvatar name={page.name} path={page.logo_path} className="size-20 ring-4 ring-card" />
-            <div className="flex gap-2">
+          <UserAvatar name={page.name} path={page.logo_path} className="-mt-10 size-20 bg-card ring-4 ring-white" />
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-semibold">{page.name}</h1>
+              {page.headline ? <p className="mt-1 text-sm">{page.headline}</p> : null}
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="text-sm text-muted-foreground">{follow.count} followers</span>
               {owned ? <Button variant="outline" size="sm" asChild><Link href="/page/edit">Edit page</Link></Button> : null}
               {!owned && viewer ? (
                 <form action={follow.following ? unfollowPage : followPage}>
@@ -63,10 +68,10 @@ async function PageView({ params }: { params: Promise<{ slug: string }> }) {
               {!viewer ? <Button size="sm" asChild><Link href="/login">Follow</Link></Button> : null}
             </div>
           </div>
-          <h1 className="mt-3 text-2xl font-semibold">{page.name}</h1>
-          <p className="text-sm text-muted-foreground">{follow.count} followers</p>
-          {page.headline ? <p className="mt-2 text-sm">{page.headline}</p> : null}
-          {locationLabel(page.city, page.state) ? <p className="mt-1 text-sm text-muted-foreground">{locationLabel(page.city, page.state)}</p> : null}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Badge>Studio</Badge>
+            {locationLabel(page.city, page.state) ? <Badge variant="outline">{locationLabel(page.city, page.state)}</Badge> : null}
+          </div>
         </div>
       </section>
 
@@ -83,7 +88,7 @@ async function PageView({ params }: { params: Promise<{ slug: string }> }) {
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold">Playtests</h2>
-        {playtests.length === 0 ? <p className="text-sm text-muted-foreground">No playtests from this page yet.</p> : playtests.map((listing) => (
+        {playtests.length === 0 ? <p className="text-sm text-muted-foreground">{owned ? "Post a playtest from your page when you want players to apply." : "This studio has not posted a playtest yet."}</p> : playtests.map((listing) => (
           <article key={listing.id} className="rounded-xl border bg-card p-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-medium">{listing.title}</h3>
@@ -104,7 +109,7 @@ async function PageView({ params }: { params: Promise<{ slug: string }> }) {
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold">Posts</h2>
-        {posts.map((post) => <PostCard key={post.id} post={post} viewer={viewer} />)}
+        {posts.length === 0 ? <EmptyState title="No posts yet" body={owned ? "Publish a post as this page from the feed so it shows up here." : "This page has not published a post yet."} /> : posts.map((post) => <PostCard key={post.id} post={post} viewer={viewer} />)}
       </section>
     </div>
   )

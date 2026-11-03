@@ -2,17 +2,51 @@
 
 import { useState } from "react"
 import { createPost } from "@/server/actions/posts"
+import { UserAvatar } from "@/components/person"
 import { COLLAB_ROLES, JOB_TYPE_LABELS, POST_TYPE_OPTIONS } from "@/lib/constants"
 import type { JobType, PostType } from "@/lib/types"
 import { ActionForm, AreaField, Field, NativeSelect, SubmitButton, TextField } from "@/components/form-kit"
 
-export function Composer({ pageName }: { pageName: string | null }) {
+export function Composer({
+  pageName,
+  authorName,
+  avatarPath,
+  expanded = false,
+}: {
+  pageName: string | null
+  authorName: string
+  avatarPath: string | null
+  expanded?: boolean
+}) {
+  const [open, setOpen] = useState(expanded)
   const [type, setType] = useState<PostType | "">("")
+
+  if (!open) {
+    return (
+      <section className="rounded-xl border bg-card p-3 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center gap-3 text-left"
+        >
+          <UserAvatar name={authorName} path={avatarPath} />
+          <span className="flex-1 rounded-full border bg-background px-4 py-2 text-sm text-muted-foreground">
+            Share an update
+          </span>
+        </button>
+      </section>
+    )
+  }
 
   return (
     <section className="rounded-xl border bg-card p-4 shadow-sm">
-      <h2 className="text-sm font-semibold">Create a post</h2>
-      <p className="mt-1 text-xs text-muted-foreground">Choose a post type. A post cannot be published without one.</p>
+      <div className="flex items-center gap-3">
+        <UserAvatar name={authorName} path={avatarPath} />
+        <div>
+          <h2 className="text-sm font-semibold">Create a post</h2>
+          <p className="text-xs text-muted-foreground">Choose a type. A post cannot be published without one.</p>
+        </div>
+      </div>
       <ActionForm action={createPost} className="mt-4 space-y-4">
         <div className="grid gap-2 sm:grid-cols-2">
           {POST_TYPE_OPTIONS.map((option) => (
@@ -94,7 +128,7 @@ export function Composer({ pageName }: { pageName: string | null }) {
           </label>
         ) : null}
 
-        <SubmitButton pendingLabel="Publishing…" size="lg">Publish</SubmitButton>
+        {type ? <SubmitButton pendingLabel="Publishing…" size="lg">Publish</SubmitButton> : null}
       </ActionForm>
     </section>
   )

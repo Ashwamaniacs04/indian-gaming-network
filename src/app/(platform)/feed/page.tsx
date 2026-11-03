@@ -28,11 +28,15 @@ async function Feed({ searchParams }: { searchParams: Promise<{ scope?: string }
         <Link href="/feed" className={`rounded-full px-3 py-1 text-sm ${scope === "all" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}>All</Link>
         <Link href="/feed?scope=following" className={`rounded-full px-3 py-1 text-sm ${scope === "following" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}>Following</Link>
       </div>
-      <Composer pageName={viewer.page?.name ?? null} />
+      <Composer
+        pageName={viewer.page?.name ?? null}
+        authorName={viewer.profile.display_name}
+        avatarPath={viewer.profile.avatar_path}
+      />
       {posts.length === 0 ? (
         <EmptyState
           title={scope === "following" ? "No posts from pages you follow" : "The feed is quiet"}
-          body={scope === "following" ? "Follow a studio page, then check this filter again." : "Be the first to publish an image, video, job, or collab."}
+          body={scope === "following" ? "Follow a studio page, then come back to this filter." : "Share an update above: an image, a YouTube link, a job, or a collab."}
         />
       ) : (
         posts.map((post) => <PostCard key={post.id} post={post} viewer={viewer} />)

@@ -84,7 +84,7 @@ function Tab({ href, active, children }: { href: string; active: boolean; childr
 
 async function People({ q, role, state }: { q: string; role?: string; state?: string }) {
   const people = await searchPeople({ q, role, state })
-  if (people.length === 0) return <EmptyState title="No people found" body="Try another name, role, or state." />
+  if (people.length === 0) return <EmptyState title="No people found" body="Try a different name, role, or state." />
   return (
     <div className="space-y-2">
       {people.map((person) => (
@@ -104,13 +104,16 @@ async function People({ q, role, state }: { q: string; role?: string; state?: st
 
 async function Pages({ q, state }: { q: string; state?: string }) {
   const pages = await searchPages({ q, state })
-  if (pages.length === 0) return <EmptyState title="No pages found" body="Studio pages will appear here once they are created." />
+  if (pages.length === 0) return <EmptyState title="No pages found" body="Try a studio name, or join as a studio to create a page." />
   return (
     <div className="space-y-2">
       {pages.map((page) => (
-        <Link key={page.id} href={`/p/${page.slug}`} className="block rounded-xl border bg-card p-3">
-          <span className="block text-sm font-semibold">{page.name}</span>
-          <span className="block text-xs text-muted-foreground">{page.headline || locationLabel(page.city, page.state) || "Studio"}</span>
+        <Link key={page.id} href={`/p/${page.slug}`} className="flex items-center gap-3 rounded-xl border bg-card p-3">
+          <UserAvatar name={page.name} path={page.logo_path} />
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold">{page.name}</span>
+            <span className="block truncate text-xs text-muted-foreground">{page.headline || locationLabel(page.city, page.state) || "Studio"}</span>
+          </span>
         </Link>
       ))}
     </div>
@@ -119,13 +122,13 @@ async function Pages({ q, state }: { q: string; state?: string }) {
 
 async function Posts({ q, postType, viewer }: { q: string; postType?: string; viewer: Awaited<ReturnType<typeof getViewer>> }) {
   const posts = await searchPosts({ q, postType })
-  if (posts.length === 0) return <EmptyState title="No posts found" body="Try another word or post type." />
+  if (posts.length === 0) return <EmptyState title="No posts found" body="Try another word, or switch the post type." />
   return <div className="space-y-3">{posts.map((post) => <PostCard key={post.id} post={post} viewer={viewer} />)}</div>
 }
 
 async function Playtests({ q }: { q: string }) {
   const listings = await getPlaytests({ q })
-  if (listings.length === 0) return <EmptyState title="No playtests found" body="Try a game title." />
+  if (listings.length === 0) return <EmptyState title="No playtests found" body="Try a game title, or open Opportunities to see every listing." />
   return (
     <div className="space-y-2">
       {listings.map((listing) => (

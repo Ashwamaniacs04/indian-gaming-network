@@ -6,9 +6,11 @@ import { Bell, Briefcase, Home, Search, UserRound } from "lucide-react"
 import type { ReactNode } from "react"
 import { followPage, unfollowPage } from "@/server/actions/social"
 import { signOut } from "@/server/actions/auth"
+import { BrandLockup } from "@/components/brand"
 import { NotificationListener } from "@/components/notification-listener"
 import { UserAvatar } from "@/components/person"
 import { Button } from "@/components/ui/button"
+import { roleLabel } from "@/lib/constants"
 import { locationLabel } from "@/lib/format"
 import type { PlaytestCard, StudioPage, Viewer } from "@/lib/types"
 
@@ -35,11 +37,20 @@ export function Shell({
     <div className="min-h-full">
       {viewer ? <NotificationListener userId={viewer.id} /> : null}
       <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
-          <Link href={viewer ? "/feed" : "/"} className="truncate text-sm font-semibold text-primary">
-            Indian Gaming Network
-          </Link>
-          <div className="flex items-center gap-2">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
+          <BrandLockup href={viewer ? "/feed" : "/"} shortOnMobile />
+          <form action="/search" className="mx-auto hidden min-w-0 w-full max-w-md lg:block">
+            <label className="relative block">
+              <span className="sr-only">Search</span>
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                name="q"
+                placeholder="Search people, pages, and posts"
+                className="h-9 w-full rounded-full border bg-background pr-3 pl-9 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              />
+            </label>
+          </form>
+          <div className="ml-auto flex items-center gap-2">
             {viewer ? (
               <>
                 <Button size="sm" asChild>
@@ -66,7 +77,7 @@ export function Shell({
                 <UserAvatar name={viewer.profile.display_name} path={viewer.profile.avatar_path} />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold">{viewer.profile.display_name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">@{viewer.profile.username}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{roleLabel(viewer.profile.role)}</span>
                 </span>
               </Link>
             ) : null}
@@ -141,11 +152,23 @@ function MobileNav({ viewer }: { viewer: Viewer | null }) {
         return (
           <Link key={item.href} href={item.href} className={`flex min-w-0 flex-col items-center gap-1 px-1 py-2 text-[11px] ${active ? "text-primary" : "text-muted-foreground"}`}>
             <Icon className="size-4" />
-            <span className="max-w-full truncate">{item.label === "Opportunities" ? "Listings" : item.label}</span>
+            <MobileLabel label={item.label} />
           </Link>
         )
       })}
     </nav>
+  )
+}
+
+function MobileLabel({ label }: { label: string }) {
+  if (label !== "Opportunities") {
+    return <span className="max-w-full truncate text-[10px] leading-tight">{label}</span>
+  }
+  return (
+    <span className="max-w-full text-center text-[10px] leading-tight">
+      <span className="hidden min-[360px]:inline">Opportunities</span>
+      <span className="min-[360px]:hidden">Board</span>
+    </span>
   )
 }
 
@@ -162,12 +185,15 @@ function Rail({
       <section className="rounded-xl border bg-card p-4">
         <h2 className="text-sm font-semibold">Pages to follow</h2>
         <div className="mt-3 space-y-3">
-          {suggestions.pages.length === 0 ? <p className="text-sm text-muted-foreground">Studio pages will show up here.</p> : null}
+          {suggestions.pages.length === 0 ? <p className="text-sm text-muted-foreground">Follow a studio page when one is listed here. Followed pages fill your Following feed.</p> : null}
           {suggestions.pages.map((page) => (
             <div key={page.id} className="flex items-center justify-between gap-2">
-              <Link href={`/p/${page.slug}`} className="min-w-0">
-                <span className="block truncate text-sm font-medium">{page.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">{page.headline || locationLabel(page.city, page.state) || "Studio"}</span>
+              <Link href={`/p/${page.slug}`} className="flex min-w-0 items-center gap-2">
+                <UserAvatar name={page.name} path={page.logo_path} className="size-8" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">{page.name}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{page.headline || locationLabel(page.city, page.state) || "Studio"}</span>
+                </span>
               </Link>
               <form action={page.following ? unfollowPage : followPage}>
                 <input type="hidden" name="page_id" value={page.id} />
@@ -183,11 +209,14 @@ function Rail({
       <section className="rounded-xl border bg-card p-4">
         <h2 className="text-sm font-semibold">Open playtests</h2>
         <div className="mt-3 space-y-3">
-          {suggestions.playtests.length === 0 ? <p className="text-sm text-muted-foreground">No open playtests yet.</p> : null}
+          {suggestions.playtests.length === 0 ? <p className="text-sm text-muted-foreground">When a studio posts a playtest, open it from Opportunities.</p> : null}
           {suggestions.playtests.map((listing) => (
-            <Link key={listing.id} href="/opportunities?tab=playtests" className="block">
-              <span className="block text-sm font-medium">{listing.title}</span>
-              <span className="block text-xs text-muted-foreground">{listing.game_title} · {listing.page?.name}</span>
+            <Link key={listing.id} href="/opportunities?tab=playtests" className="flex items-center gap-2">
+              <UserAvatar name={listing.page.name} path={listing.page.logo_path} className="size-8" />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{listing.title}</span>
+                <span className="block truncate text-xs text-muted-foreground">{listing.game_title} · {listing.page?.name}</span>
+              </span>
             </Link>
           ))}
         </div>

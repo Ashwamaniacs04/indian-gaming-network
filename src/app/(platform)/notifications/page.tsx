@@ -28,7 +28,7 @@ async function Alerts() {
           <Button type="submit" variant="outline" size="sm">Mark all read</Button>
         </form>
       </div>
-      {items.length === 0 ? <EmptyState title="No alerts" body="Comments, applications, and new followers show up here." /> : (
+      {items.length === 0 ? <EmptyState title="No alerts" body="When someone comments, applies, or follows your page, you will see it here." /> : (
         <ul className="space-y-2">
           {items.map((item) => (
             <li key={item.id} className={`rounded-xl border bg-card p-3 text-sm ${item.read_at ? "" : "border-primary/40"}`}>

@@ -17,7 +17,12 @@ async function NewPost() {
   return (
     <div className="space-y-3">
       <h1 className="text-xl font-semibold">New post</h1>
-      <Composer pageName={viewer.page?.name ?? null} />
+      <Composer
+        pageName={viewer.page?.name ?? null}
+        authorName={viewer.profile.display_name}
+        avatarPath={viewer.profile.avatar_path}
+        expanded
+      />
     </div>
   )
 }

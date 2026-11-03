@@ -92,7 +92,7 @@ async function PlaytestList({
 }) {
   const listings = await getPlaytests({ q, state, location })
   if (listings.length === 0) {
-    return <EmptyState title="No open playtests" body="Studios can post a playtest from their page." />
+    return <EmptyState title="No open playtests" body="If you run a studio, post a playtest from your page." />
   }
   return (
     <div className="space-y-3">
@@ -148,7 +148,7 @@ async function PostList({
   viewer: Awaited<ReturnType<typeof getViewer>>
 }) {
   const posts = await getOpportunityPosts(type, q)
-  if (posts.length === 0) return <EmptyState title={type === "job" ? "No jobs yet" : "No collabs yet"} body="Publish one from the feed composer." />
+  if (posts.length === 0) return <EmptyState title={type === "job" ? "No jobs yet" : "No collabs yet"} body={type === "job" ? "Post a job from the feed when you are hiring." : "Post a collab from the feed when you need people."} />
   return <div className="space-y-3">{posts.map((post) => <PostCard key={post.id} post={post} viewer={viewer} showInterest />)}</div>
 }
 
@@ -156,7 +156,7 @@ async function Inbox() {
   const viewer = await getViewer()
   if (!viewer) return null
   const items = await getInterestInbox()
-  if (items.length === 0) return <EmptyState title="No applications yet" body="Interest in your jobs, collabs, and playtests will land here." />
+  if (items.length === 0) return <EmptyState title="No applications yet" body="When someone applies to your job, collab, or playtest, you will see it here." />
   return (
     <div className="space-y-3">
       {items.map((item) => (
