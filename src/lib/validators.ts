@@ -38,6 +38,14 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Enter your password."),
 })
 
+export const passwordResetRequestSchema = z.object({
+  email: z.email("Enter a valid email."),
+})
+
+export const newPasswordSchema = z.object({
+  password: z.string().min(8, "Use at least 8 characters.").max(72),
+})
+
 export const onboardingSchema = z
   .object({
     role: roleSchema,

@@ -67,7 +67,9 @@ export function friendlyDbError(message: string) {
 
 export function safeNextPath(value: unknown) {
   if (typeof value !== "string") return "/feed"
-  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/login")) return "/feed"
+  if (!value.startsWith("/") || value.startsWith("//")) return "/feed"
+  if (value === "/login/update-password") return value
+  if (value.startsWith("/login")) return "/feed"
   return value
 }
 

@@ -38,11 +38,14 @@ async function LoginForm({ searchParams }: { searchParams: Promise<{ next?: stri
       {!configured ? <div className="mt-6"><SetupNotice /></div> : (
         <>
           {params.error === "google" ? <p className="mt-4 text-sm text-destructive">Google sign-in is not available until the provider is enabled in Supabase.</p> : null}
+          {params.error === "link" ? <p className="mt-4 text-sm text-destructive">That link expired or was already used. Request a new one.</p> : null}
           <ActionForm action={signIn} className="mt-6 space-y-4">
             <input type="hidden" name="next" value={next} />
             <Field label="Email"><TextField name="email" type="email" autoComplete="email" required /></Field>
             <Field label="Password"><TextField name="password" type="password" autoComplete="current-password" required /></Field>
-            <SubmitButton pendingLabel="Signing in…" size="lg">Sign in</SubmitButton>
+            <Link href="/login/forgot" className="inline-block text-sm font-medium text-primary">Forgot password?</Link>
+            <SubmitButton pendingLabel="Signing in…" size="lg" className="w-full">Sign in</SubmitButton>
+            <Button type="submit" name="intent" value="link" variant="outline" className="w-full" formNoValidate>Email me a sign-in link</Button>
           </ActionForm>
           <form action={signInWithGoogle} className="mt-3">
             <input type="hidden" name="next" value={next} />

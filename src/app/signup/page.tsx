@@ -31,7 +31,8 @@ export default function SignupPage() {
                 {ROLE_OPTIONS.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
               </NativeSelect>
             </Field>
-            <SubmitButton pendingLabel="Creating…" size="lg">Create account</SubmitButton>
+            <SubmitButton pendingLabel="Creating…" size="lg" className="w-full">Create account</SubmitButton>
+            <Button type="submit" name="intent" value="link" variant="outline" className="w-full" formNoValidate>Email me a sign-in link</Button>
           </ActionForm>
           <form action={signInWithGoogle} className="mt-3">
             <Button type="submit" variant="outline" className="w-full">Continue with Google</Button>

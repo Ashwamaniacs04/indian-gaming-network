@@ -11,7 +11,10 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (error) {
-      return NextResponse.redirect(new URL("/login?error=google", url.origin))
+      return NextResponse.redirect(new URL("/login?error=link", url.origin))
+    }
+    if (next === "/login/update-password") {
+      return NextResponse.redirect(new URL(next, url.origin))
     }
     const { data } = await supabase.auth.getClaims()
     const userId = data?.claims?.sub
