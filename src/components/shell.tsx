@@ -7,6 +7,7 @@ import type { ReactNode } from "react"
 import { followPage, unfollowPage } from "@/server/actions/social"
 import { signOut } from "@/server/actions/auth"
 import { BrandLockup } from "@/components/brand"
+import { ThemeSwitch } from "@/components/theme-switch"
 import { NotificationListener } from "@/components/notification-listener"
 import { UserAvatar } from "@/components/person"
 import { Button } from "@/components/ui/button"
@@ -51,6 +52,7 @@ export function Shell({
             </label>
           </form>
           <div className="ml-auto flex items-center gap-2">
+            <ThemeSwitch />
             {viewer ? (
               <>
                 <Button size="sm" asChild>
@@ -133,7 +135,7 @@ function NavItem({
   badge: number
 }) {
   return (
-    <Link href={href} className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${active ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:bg-muted"}`}>
+    <Link href={href} className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${active ? "bg-primary/10 font-medium text-primary dark:bg-transparent dark:text-white dark:[background-image:linear-gradient(90deg,rgba(92,110,240,0.42),rgba(123,140,255,0.08))]" : "text-muted-foreground hover:bg-muted"}`}>
       <span className="flex items-center gap-2"><Icon className="size-4" />{label}</span>
       {badge > 0 ? <span className="rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{badge}</span> : null}
     </Link>

@@ -3,6 +3,7 @@ import { signInWithGoogle, signUp } from "@/server/actions/auth"
 import { ActionForm, Field, NativeSelect, SubmitButton, TextField } from "@/components/form-kit"
 import { SetupNotice } from "@/components/person"
 import { BrandLockup } from "@/components/brand"
+import { ThemeSwitch } from "@/components/theme-switch"
 import { Button } from "@/components/ui/button"
 import { ROLE_OPTIONS } from "@/lib/constants"
 import { isSupabaseConfigured } from "@/lib/supabase/client"
@@ -13,7 +14,10 @@ export default function SignupPage() {
   const configured = isSupabaseConfigured()
   return (
     <main className="mx-auto flex min-h-full max-w-md flex-col justify-center px-4 py-12">
-      <BrandLockup href="/" />
+      <div className="flex items-center justify-between gap-3">
+        <BrandLockup href="/" />
+        <ThemeSwitch />
+      </div>
       <h1 className="mt-6 text-2xl font-semibold">Create your profile</h1>
       <p className="mt-1 text-sm text-muted-foreground">Pick the role that best describes your work. You can change it later.</p>
       {!configured ? <div className="mt-6"><SetupNotice /></div> : (

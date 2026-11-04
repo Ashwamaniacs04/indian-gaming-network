@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { BrandLockup } from "@/components/brand"
+import { ThemeSwitch } from "@/components/theme-switch"
 import { OnboardingForm } from "@/components/onboarding-form"
 import { requireUser } from "@/lib/auth"
 
@@ -20,7 +21,10 @@ async function Onboarding() {
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
-      <BrandLockup href="/" />
+      <div className="flex items-center justify-between gap-3">
+        <BrandLockup href="/" />
+        <ThemeSwitch />
+      </div>
       <h1 className="mt-2 text-2xl font-semibold">Set up your profile</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         A few details so studios, testers, and creators can find you.

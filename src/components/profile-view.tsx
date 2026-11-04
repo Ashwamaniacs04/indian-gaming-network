@@ -29,14 +29,14 @@ export function ProfileView({
   return (
     <div className="space-y-4">
       <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
-        <div className="h-36 bg-gradient-to-r from-blue-800 to-sky-500 sm:h-44">
+        <div className="profile-banner h-36 bg-gradient-to-r from-blue-800 to-sky-500 sm:h-44">
           {banner ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={banner} alt="" className="h-full w-full object-cover" />
           ) : null}
         </div>
         <div className="px-4 pb-5">
-          <UserAvatar name={profile.display_name} path={profile.avatar_path} className="-mt-10 size-20 bg-card ring-4 ring-white" />
+          <UserAvatar name={profile.display_name} path={profile.avatar_path} className="-mt-10 size-20 bg-card ring-4 ring-background" />
           <div className="mt-3 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="text-2xl font-semibold">{profile.display_name}</h1>

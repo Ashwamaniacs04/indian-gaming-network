@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { Heart, MessageCircle } from "lucide-react"
 import { BrandLockup } from "@/components/brand"
+import { ThemeSwitch } from "@/components/theme-switch"
 import { Button } from "@/components/ui/button"
 import { ROLE_OPTIONS } from "@/lib/constants"
 import { getViewer } from "@/lib/auth"
@@ -25,7 +26,8 @@ async function HomeContent() {
       <header className="border-b bg-card">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
           <BrandLockup href="/" shortOnMobile />
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <ThemeSwitch />
             <Button variant="ghost" size="sm" asChild><Link href="/login">Sign in</Link></Button>
             <Button size="sm" asChild><Link href="/signup">Join</Link></Button>
           </div>

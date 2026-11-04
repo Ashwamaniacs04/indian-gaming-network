@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { addExperience, addPortfolio, deleteExperience, deletePortfolio, updateProfile, updateRole } from "@/server/actions/profile"
 import { ActionForm, AreaField, Field, NativeSelect, SubmitButton, TextField } from "@/components/form-kit"
+import { ThemeSwitch } from "@/components/theme-switch"
 import { AVAILABILITY_OPTIONS, INDIAN_STATES, PLATFORMS, ROLE_OPTIONS, roleLabel } from "@/lib/constants"
 import { formatMonth } from "@/lib/format"
 import { requireUser } from "@/lib/auth"
@@ -27,6 +28,14 @@ async function Settings() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Settings</h1>
+
+      <section className="rounded-xl border bg-card p-4">
+        <h2 className="text-sm font-semibold">Appearance</h2>
+        <p className="mt-1 text-sm text-muted-foreground">The site opens in light. Your choice stays on this browser.</p>
+        <div className="mt-3">
+          <ThemeSwitch />
+        </div>
+      </section>
 
       <section className="rounded-xl border bg-card p-4">
         <h2 className="text-sm font-semibold">Role</h2>
