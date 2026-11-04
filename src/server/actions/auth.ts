@@ -118,18 +118,39 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
 }
 
 export async function signInWithGoogle(formData: FormData) {
+  return signInWithProvider("google", formData)
+}
+
+export async function signInWithDiscord(formData: FormData) {
+  return signInWithProvider("discord", formData)
+}
+
+async function signInWithProvider(provider: "google" | "discord", formData: FormData) {
   const supabase = await createClient()
   const origin = await siteOrigin()
   const next = safeNextPath(formData.get("next"))
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
+    provider,
     options: {
       redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   })
   if (error || !data.url) {
-    redirect("/login?error=google")
+    redirect(`/login?error=${provider}`)
   }
+  let unavailable = false
+  try {
+    const probeUrl = new URL(data.url)
+    probeUrl.searchParams.delete("code_challenge")
+    probeUrl.searchParams.delete("code_challenge_method")
+    const probe = await fetch(probeUrl, { redirect: "manual" })
+    if (probe.status >= 400) {
+      unavailable = (await probe.text()).includes("not enabled")
+    }
+  } catch {
+    unavailable = false
+  }
+  if (unavailable) redirect(`/login?error=${provider}`)
   redirect(data.url)
 }
 

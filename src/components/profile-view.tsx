@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EmptyState, UserAvatar } from "@/components/person"
 import { PostCard } from "@/components/post-card"
+import { RolePlayerCard } from "@/components/role-card"
 import { roleLabel } from "@/lib/constants"
 import { formatMonth, locationLabel, publicStorageUrl } from "@/lib/format"
 import type { ExperienceItem, PortfolioItem, PostCard as PostCardData, Profile, StudioPage, Viewer } from "@/lib/types"
@@ -24,7 +25,6 @@ export function ProfileView({
 }) {
   const banner = publicStorageUrl("banners", profile.banner_path)
   const isOwner = viewer?.id === profile.id
-  const details = profile.role_details
 
   return (
     <div className="space-y-4">
@@ -71,7 +71,7 @@ export function ProfileView({
         </section>
       ) : null}
 
-      <RoleBlock profile={profile} page={page} />
+      <RolePlayerCard profile={profile} page={page ? { name: page.name, slug: page.slug } : null} />
 
       {(profile.role === "cosplay_artist" || profile.role === "streamer" || portfolio.length > 0) ? (
         <section className="rounded-xl border bg-card p-4">
@@ -140,68 +140,4 @@ export function ProfileView({
   )
 }
 
-function RoleBlock({ profile, page }: { profile: Profile; page: StudioPage | null }) {
-  const details = profile.role_details
-  if (profile.role === "gamer") {
-    return (
-      <InfoList title="Play" rows={[
-        ["Platforms", details.platforms?.join(", ")],
-        ["Favorite games", details.favorite_games?.join(", ")],
-      ]} />
-    )
-  }
-  if (profile.role === "tester") {
-    return (
-      <InfoList title="Testing" rows={[
-        ["Experience", details.years_experience ? `${details.years_experience} years` : null],
-        ["Platforms", details.platforms?.join(", ")],
-        ["Games tested", details.games_tested?.join(", ")],
-      ]} />
-    )
-  }
-  if (profile.role === "streamer") {
-    return (
-      <InfoList title="Channel" rows={[
-        ["Schedule", details.schedule],
-        ["Typical viewers", details.avg_viewers ? String(details.avg_viewers) : null],
-        ["Platforms", details.platforms?.join(", ")],
-      ]} />
-    )
-  }
-  if (profile.role === "cosplay_artist") {
-    return (
-      <InfoList title="Cosplay" rows={[
-        ["Characters", details.characters?.join(", ")],
-        ["Conventions", details.conventions?.join(", ")],
-      ]} />
-    )
-  }
-  return (
-    <section className="rounded-xl border bg-card p-4">
-      <h2 className="text-sm font-semibold">Studio page</h2>
-      {page ? (
-        <Link href={`/p/${page.slug}`} className="mt-2 block text-sm font-medium text-primary">{page.name}</Link>
-      ) : (
-        <p className="mt-2 text-sm text-muted-foreground">This studio has not published a page yet.</p>
-      )}
-    </section>
-  )
-}
 
-function InfoList({ title, rows }: { title: string; rows: Array<[string, string | null | undefined]> }) {
-  const visible = rows.filter((row) => row[1])
-  if (visible.length === 0) return null
-  return (
-    <section className="rounded-xl border bg-card p-4">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      <dl className="mt-2 space-y-2">
-        {visible.map(([label, value]) => (
-          <div key={label}>
-            <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-sm">{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  )
-}

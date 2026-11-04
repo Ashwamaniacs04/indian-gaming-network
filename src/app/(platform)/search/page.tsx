@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EmptyState, UserAvatar } from "@/components/person"
 import { PostCard } from "@/components/post-card"
+import { RolePlayerCard } from "@/components/role-card"
 import { NativeSelect, TextField } from "@/components/form-kit"
-import { INDIAN_STATES, POST_TYPE_OPTIONS, ROLE_OPTIONS, roleLabel } from "@/lib/constants"
+import { INDIAN_STATES, POST_TYPE_OPTIONS, ROLE_OPTIONS } from "@/lib/constants"
 import { locationLabel } from "@/lib/format"
 import { getViewer } from "@/lib/auth"
-import { getPlaytests, searchPages, searchPeople, searchPosts } from "@/server/queries"
+import { getPlaytests, searchPages, searchPeople, searchPosts, studioPagesFor } from "@/server/queries"
 
 export const metadata = { title: "Search" }
 
@@ -85,18 +86,18 @@ function Tab({ href, active, children }: { href: string; active: boolean; childr
 async function People({ q, role, state }: { q: string; role?: string; state?: string }) {
   const people = await searchPeople({ q, role, state })
   if (people.length === 0) return <EmptyState title="No people found" body="Try a different name, role, or state." />
+  const studios = people.filter((person) => person.role === "studio").map((person) => person.id)
+  const pages = await studioPagesFor(studios)
+  const pageByOwner = new Map(pages.map((page) => [page.owner_id, page]))
   return (
     <div className="space-y-2">
       {people.map((person) => (
-        <Link key={person.id} href={`/u/${person.username}`} className="flex items-center gap-3 rounded-xl border bg-card p-3">
-          <UserAvatar name={person.display_name} path={person.avatar_path} />
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">{person.display_name}</span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {roleLabel(person.role)} · {locationLabel(person.city, person.state) || "India"}
-            </span>
-          </span>
-        </Link>
+        <RolePlayerCard
+          key={person.id}
+          profile={person}
+          page={pageByOwner.get(person.id) ?? null}
+          href={`/u/${person.username}`}
+        />
       ))}
     </div>
   )

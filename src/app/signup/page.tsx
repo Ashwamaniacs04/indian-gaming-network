@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { signInWithGoogle, signUp } from "@/server/actions/auth"
+import { signInWithDiscord, signInWithGoogle, signUp } from "@/server/actions/auth"
 import { ActionForm, Field, NativeSelect, SubmitButton, TextField } from "@/components/form-kit"
 import { SetupNotice } from "@/components/person"
 import { BrandLockup } from "@/components/brand"
@@ -36,6 +36,9 @@ export default function SignupPage() {
           </ActionForm>
           <form action={signInWithGoogle} className="mt-3">
             <Button type="submit" variant="outline" className="w-full">Continue with Google</Button>
+          </form>
+          <form action={signInWithDiscord} className="mt-3">
+            <Button type="submit" variant="outline" className="w-full">Continue with Discord</Button>
           </form>
         </>
       )}

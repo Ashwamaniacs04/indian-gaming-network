@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Suspense } from "react"
-import { signIn, signInWithGoogle } from "@/server/actions/auth"
+import { signIn, signInWithDiscord, signInWithGoogle } from "@/server/actions/auth"
 import { ActionForm, Field, SubmitButton, TextField } from "@/components/form-kit"
 import { SetupNotice } from "@/components/person"
 import { BrandLockup } from "@/components/brand"
@@ -38,6 +38,7 @@ async function LoginForm({ searchParams }: { searchParams: Promise<{ next?: stri
       {!configured ? <div className="mt-6"><SetupNotice /></div> : (
         <>
           {params.error === "google" ? <p className="mt-4 text-sm text-destructive">Google sign-in is not available until the provider is enabled in Supabase.</p> : null}
+          {params.error === "discord" ? <p className="mt-4 text-sm text-destructive">Discord sign-in is not available until the provider is enabled in Supabase.</p> : null}
           {params.error === "link" ? <p className="mt-4 text-sm text-destructive">That link expired or was already used. Request a new one.</p> : null}
           <ActionForm action={signIn} className="mt-6 space-y-4">
             <input type="hidden" name="next" value={next} />
@@ -50,6 +51,10 @@ async function LoginForm({ searchParams }: { searchParams: Promise<{ next?: stri
           <form action={signInWithGoogle} className="mt-3">
             <input type="hidden" name="next" value={next} />
             <Button type="submit" variant="outline" className="w-full">Continue with Google</Button>
+          </form>
+          <form action={signInWithDiscord} className="mt-3">
+            <input type="hidden" name="next" value={next} />
+            <Button type="submit" variant="outline" className="w-full">Continue with Discord</Button>
           </form>
         </>
       )}

@@ -343,6 +343,13 @@ export async function searchPeople(filters: { q?: string; role?: string; state?:
   return (data ?? []).map((row) => mapProfile(row as Record<string, unknown>))
 }
 
+export async function studioPagesFor(ownerIds: string[]) {
+  if (!isSupabaseConfigured() || ownerIds.length === 0) return [] as Array<{ owner_id: string; slug: string; name: string }>
+  const supabase = await createClient()
+  const { data } = await supabase.from("pages").select("owner_id, slug, name").in("owner_id", ownerIds)
+  return (data ?? []) as Array<{ owner_id: string; slug: string; name: string }>
+}
+
 export async function searchPages(filters: { q?: string; state?: string }) {
   if (!isSupabaseConfigured()) return [] as StudioPage[]
   const supabase = await createClient()
