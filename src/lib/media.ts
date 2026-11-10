@@ -9,6 +9,25 @@ const ALLOWED = new Map([
 
 const MAX_BYTES = 5 * 1024 * 1024
 
+export async function uploadFeedImage(
+  supabase: SupabaseClient,
+  userId: string,
+  entry: FormDataEntryValue | null,
+) {
+  if (!(entry instanceof File) || entry.size === 0) return { error: "Choose an image for this post." }
+  const extension = entry.type === "image/jpeg" ? "jpg" : entry.type === "image/webp" ? "webp" : null
+  if (!extension) return { error: "Feed images must be JPEG or WebP. GIFs are not allowed." }
+  if (entry.size > 1024 * 1024) return { error: "Feed images must be 1 MB or smaller." }
+  const path = `${userId}/${crypto.randomUUID()}.${extension}`
+  const bytes = Buffer.from(await entry.arrayBuffer())
+  const { error } = await supabase.storage.from("posts").upload(path, bytes, {
+    contentType: entry.type,
+    upsert: false,
+  })
+  if (error) return { error: "The image could not be uploaded." }
+  return { path }
+}
+
 export async function uploadImage(
   supabase: SupabaseClient,
   bucket: "avatars" | "banners" | "posts" | "portfolio",

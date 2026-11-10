@@ -83,6 +83,8 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
     website: textValue(formData, "website"),
     contact_email: textValue(formData, "contact_email"),
     availability: textValue(formData, "availability"),
+    looking_for: textValue(formData, "looking_for"),
+    languages: formData.getAll("languages").filter((value): value is string => typeof value === "string"),
     skills: textValue(formData, "skills"),
     youtube: textValue(formData, "youtube"),
     twitch: textValue(formData, "twitch"),
@@ -119,6 +121,8 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
       website: emptyToNull(parsed.data.website),
       contact_email: emptyToNull(parsed.data.contact_email),
       availability: emptyToNull(parsed.data.availability),
+      looking_for: emptyToNull(parsed.data.looking_for),
+      languages: parsed.data.languages,
       skills: splitList(parsed.data.skills),
       avatar_path: avatar.path ?? viewer.profile.avatar_path,
       banner_path: banner.path ?? viewer.profile.banner_path,
@@ -143,6 +147,7 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
 
   if (error) return { error: friendlyDbError(error.message) }
   revalidatePath("/settings")
+  revalidatePath("/profile/edit")
   revalidatePath(`/u/${viewer.profile.username}`)
   return { success: "Profile saved." }
 }

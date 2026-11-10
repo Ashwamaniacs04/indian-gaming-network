@@ -37,7 +37,7 @@ export function SetupNotice() {
     <div className="rounded-xl border bg-card p-5 text-sm">
       <h2 className="font-semibold">Connect Supabase to use accounts</h2>
       <p className="mt-2 text-muted-foreground">
-        Copy <code>.env.example</code> to <code>.env.local</code>, add your project URL and publishable key, then run the SQL migration in <code>supabase/migrations/0001_init.sql</code>.
+        Copy <code>.env.example</code> to <code>.env.local</code>, add your project URL and publishable key, then run <code>supabase/migrations/0001_init.sql</code>, <code>0002_profile_connections.sql</code>, and <code>0003_game_promos.sql</code>.
       </p>
     </div>
   )

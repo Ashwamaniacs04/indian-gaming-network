@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { COLLAB_ROLES, INDIAN_STATES, PLATFORMS } from "@/lib/constants"
+import { COLLAB_ROLES, GAME_GENRES, INDIAN_STATES, LANGUAGES, PLATFORMS } from "@/lib/constants"
 import { JOB_TYPES, POST_TYPES, ROLES } from "@/lib/types"
 import { canonicalYoutubeUrl } from "@/lib/youtube"
 
@@ -82,6 +82,8 @@ export const profileSchema = z.object({
   website: z.string().trim().max(200).optional().default(""),
   contact_email: z.string().trim().max(200).optional().default(""),
   availability: z.string().trim().max(80).optional().default(""),
+  looking_for: z.string().trim().max(80).optional().default(""),
+  languages: z.array(z.enum(LANGUAGES)).default([]),
   skills: z.string().trim().max(400).optional().default(""),
   youtube: z.string().trim().max(200).optional().default(""),
   twitch: z.string().trim().max(200).optional().default(""),
@@ -155,6 +157,15 @@ export const postSchema = z
       }
     }
   })
+
+export const promoSchema = z.object({
+  game_title: z.string().trim().min(2, "Enter the game title.").max(120),
+  body: z.string().trim().min(10, "Describe the game in at least a sentence.").max(2000),
+  youtube_url: z.string().trim().min(1, "Add a YouTube trailer."),
+  platforms: z.array(z.enum(PLATFORMS)).default([]),
+  release_label: z.string().trim().max(80).optional().default(""),
+  genre: z.enum(GAME_GENRES, { message: "Choose a genre." }),
+})
 
 export const playtestSchema = z.object({
   title: z.string().trim().min(3, "Enter a title.").max(120),

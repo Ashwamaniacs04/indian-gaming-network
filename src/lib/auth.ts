@@ -56,9 +56,13 @@ export function mapProfile(row: Record<string, unknown>): Profile {
     website: (row.website as string | null) ?? null,
     contact_email: (row.contact_email as string | null) ?? null,
     availability: (row.availability as string | null) ?? null,
+    looking_for: (row.looking_for as string | null) ?? null,
+    languages: asStringArray(row.languages),
+    pinned_post_id: (row.pinned_post_id as string | null) ?? null,
     socials: social,
     role_details: roleDetails,
     onboarding_complete: Boolean(row.onboarding_complete),
+    created_at: (row.created_at as string | null) ?? null,
   }
 }
 
@@ -92,6 +96,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     .is("read_at", null)
 
   const page = pageRow as ViewerPage | null
+  const { data: adminFlag, error: adminError } = await supabase.rpc("is_admin")
 
   return {
     id: userId,
@@ -105,6 +110,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
         }
       : null,
     unread: count ?? 0,
+    isAdmin: !adminError && adminFlag === true,
   }
 })
 

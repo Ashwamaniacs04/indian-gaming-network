@@ -47,9 +47,13 @@ export type Profile = {
   website: string | null
   contact_email: string | null
   availability: string | null
+  looking_for: string | null
+  languages: string[]
+  pinned_post_id: string | null
   socials: Socials
   role_details: RoleDetails
   onboarding_complete: boolean
+  created_at: string | null
 }
 
 export type StudioPage = {
@@ -82,6 +86,7 @@ export type Viewer = {
   profile: Profile
   page: ViewerPage | null
   unread: number
+  isAdmin: boolean
 }
 
 export type PostCard = {
@@ -97,6 +102,8 @@ export type PostCard = {
   collab_looking_for: string[]
   game_title: string | null
   created_at: string
+  closed_at: string | null
+  image_expired: boolean
   author: {
     username: string
     display_name: string
@@ -179,13 +186,48 @@ export type InterestInboxItem = {
 
 export type NotificationItem = {
   id: string
-  type: "comment" | "interest" | "page_follow"
+  type: "comment" | "interest" | "page_follow" | "connection_request" | "connection_accept"
   entity_id: string
   read_at: string | null
   created_at: string
   actor: {
     username: string
     display_name: string
+  } | null
+}
+
+export type ConnectionPerson = {
+  id: string
+  username: string
+  display_name: string
+  avatar_path: string | null
+  headline: string | null
+}
+
+export type ProfileConnection = {
+  status: "none" | "requested" | "incoming" | "connected"
+  id: string | null
+  mutuals: ConnectionPerson[]
+}
+
+export type GamePromo = {
+  id: string
+  game_title: string
+  body: string
+  youtube_url: string
+  platforms: string[]
+  release_label: string | null
+  amount_paise: number
+  payment_status: "unpaid" | "paid"
+  paid_at: string | null
+  expires_at: string | null
+  genre: string | null
+  created_at: string
+  author_id: string
+  page: {
+    slug: string
+    name: string
+    logo_path: string | null
   } | null
 }
 

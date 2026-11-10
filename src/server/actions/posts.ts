@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { requireUser } from "@/lib/auth"
 import { friendlyDbError, textValue } from "@/lib/format"
-import { uploadImage } from "@/lib/media"
+import { uploadFeedImage } from "@/lib/media"
 import { createClient } from "@/lib/supabase/server"
 import type { ActionState, JobType } from "@/lib/types"
 import { COLLAB_ROLES } from "@/lib/constants"
@@ -35,7 +35,7 @@ export async function createPost(_prev: ActionState, formData: FormData): Promis
   const supabase = await createClient()
   let imagePath: string | null = null
   if (parsed.data.post_type === "image") {
-    const uploaded = await uploadImage(supabase, "posts", viewer.id, formData.get("image"))
+    const uploaded = await uploadFeedImage(supabase, viewer.id, formData.get("image"))
     if ("error" in uploaded && uploaded.error) return { error: uploaded.error }
     if (!uploaded.path) return { error: "Choose an image for this post." }
     imagePath = uploaded.path

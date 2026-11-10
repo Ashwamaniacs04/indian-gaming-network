@@ -28,11 +28,11 @@ async function Alerts() {
           <Button type="submit" variant="outline" size="sm">Mark all read</Button>
         </form>
       </div>
-      {items.length === 0 ? <EmptyState title="No alerts" body="When someone comments, applies, or follows your page, you will see it here." /> : (
+      {items.length === 0 ? <EmptyState title="No alerts" body="When someone comments, applies, follows your page, or sends a connection request, you will see it here." /> : (
         <ul className="space-y-2">
           {items.map((item) => (
             <li key={item.id} className={`rounded-xl border bg-card p-3 text-sm ${item.read_at ? "" : "border-primary/40"}`}>
-              <Link href={hrefFor(item.type, item.entity_id)} className="block">
+              <Link href={hrefFor(item)} className="block">
                 <span className="font-medium">{item.actor?.display_name ?? "Someone"}</span>{" "}
                 <span className="text-muted-foreground">{copyFor(item.type)}</span>
                 <span className="mt-1 block text-xs text-muted-foreground">{formatWhen(item.created_at)}</span>
@@ -48,11 +48,16 @@ async function Alerts() {
 function copyFor(type: string) {
   if (type === "comment") return "commented on your post."
   if (type === "interest") return "expressed interest in your listing."
+  if (type === "connection_request") return "sent you a connection request."
+  if (type === "connection_accept") return "accepted your connection."
   return "followed your page."
 }
 
-function hrefFor(type: string, entityId: string) {
-  if (type === "comment") return `/post/${entityId}`
-  if (type === "interest") return "/opportunities?tab=inbox"
+function hrefFor(item: { type: string; entity_id: string; actor: { username: string } | null }) {
+  if (item.type === "comment") return `/post/${item.entity_id}`
+  if (item.type === "interest") return "/opportunities?tab=inbox"
+  if (item.type === "connection_request" || item.type === "connection_accept") {
+    return item.actor?.username ? `/u/${item.actor.username}` : "/notifications"
+  }
   return "/search?tab=pages"
 }

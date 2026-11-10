@@ -58,6 +58,8 @@ function mapPost(row: Record<string, unknown>, liked: Set<string>): PostCard {
       : [],
     game_title: (row.game_title as string | null) ?? null,
     created_at: String(row.created_at),
+    closed_at: (row.closed_at as string | null) ?? null,
+    image_expired: Boolean(row.image_expired),
     author,
     page,
     like_count: countOf(row.likes),
@@ -68,12 +70,50 @@ function mapPost(row: Record<string, unknown>, liked: Set<string>): PostCard {
 
 const POST_SELECT = `
   id, post_type, body, image_path, youtube_url, job_title, job_location, job_type,
+  collab_title, collab_looking_for, game_title, created_at, closed_at, image_expired, image_expires_at,
+  author:profiles!author_id (username, display_name, avatar_path, headline, role),
+  page:pages!page_id (slug, name, logo_path),
+  likes:post_likes(count),
+  comments:post_comments(count)
+`
+
+const POST_SELECT_LEGACY = `
+  id, post_type, body, image_path, youtube_url, job_title, job_location, job_type,
   collab_title, collab_looking_for, game_title, created_at,
   author:profiles!author_id (username, display_name, avatar_path, headline, role),
   page:pages!page_id (slug, name, logo_path),
   likes:post_likes(count),
   comments:post_comments(count)
 `
+
+type PostQuery = {
+  eq: (column: string, value: string) => PostQuery
+  in: (column: string, values: string[]) => PostQuery
+  is: (column: string, value: null) => PostQuery
+  limit: (count: number) => PostQuery
+  or: (filters: string) => PostQuery
+  contains: (column: string, value: string[]) => PostQuery
+} & PromiseLike<{ data: unknown; error: { message?: string } | null }>
+
+async function readPosts(apply: (query: PostQuery) => PostQuery, hideClosed = true) {
+  const supabase = await createClient()
+  const build = (select: string, closed: boolean) => {
+    let query = supabase.from("posts").select(select).order("created_at", { ascending: false })
+    if (closed) query = query.is("closed_at", null)
+    return apply(query as unknown as PostQuery)
+  }
+  const first = await build(POST_SELECT, hideClosed)
+  const listFrom = async (result: { data: unknown; error: { message?: string } | null }) => {
+    if (result.error) return null
+    const data = result.data
+    const list = Array.isArray(data) ? data : data ? [data] : []
+    return withLikes(list as Record<string, unknown>[])
+  }
+  const mapped = await listFrom(first)
+  if (mapped) return mapped
+  const second = await build(POST_SELECT_LEGACY, false)
+  return (await listFrom(second)) ?? []
+}
 
 async function withLikes(rows: Record<string, unknown>[]) {
   const viewer = await getViewer()
@@ -93,34 +133,32 @@ async function withLikes(rows: Record<string, unknown>[]) {
   return rows.map((row) => mapPost(row, liked))
 }
 
-export async function getFeed(scope: string) {
+export async function getFeed(scope: string, postType?: PostType) {
   if (!isSupabaseConfigured()) return { posts: [] as PostCard[], following: false }
   const supabase = await createClient()
+  await supabase.rpc("expire_feed_images")
   const viewer = await getViewer()
-  let query = supabase.from("posts").select(POST_SELECT).order("created_at", { ascending: false }).limit(30)
 
   if (scope === "following") {
     if (!viewer) return { posts: [] as PostCard[], following: true }
-    const { data: follows } = await supabase
-      .from("page_follows")
-      .select("page_id")
-      .eq("user_id", viewer.id)
+    const { data: follows } = await supabase.from("page_follows").select("page_id").eq("user_id", viewer.id)
     const pageIds = (follows ?? []).map((row) => (row as { page_id: string }).page_id)
     if (pageIds.length === 0) return { posts: [] as PostCard[], following: true }
-    query = query.in("page_id", pageIds)
+    const posts = await readPosts((query) => {
+      const next = query.in("page_id", pageIds).limit(30)
+      return postType ? next.eq("post_type", postType) : next
+    })
+    return { posts, following: true }
   }
 
-  const { data } = await query
-  return { posts: await withLikes((data ?? []) as Record<string, unknown>[]), following: scope === "following" }
+  const posts = await readPosts((query) => (postType ? query.eq("post_type", postType).limit(30) : query.limit(30)))
+  return { posts, following: false }
 }
 
 export async function getPost(id: string) {
   if (!isSupabaseConfigured()) return null
-  const supabase = await createClient()
-  const { data } = await supabase.from("posts").select(POST_SELECT).eq("id", id).maybeSingle()
-  if (!data) return null
-  const [post] = await withLikes([data as Record<string, unknown>])
-  return post
+  const [post] = await readPosts((query) => query.eq("id", id).limit(1), false)
+  return post ?? null
 }
 
 export async function getComments(postId: string) {
@@ -195,27 +233,17 @@ export async function getExperience(profileId: string) {
 
 export async function getPostsByAuthor(authorId: string) {
   if (!isSupabaseConfigured()) return [] as PostCard[]
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from("posts")
-    .select(POST_SELECT)
-    .eq("author_id", authorId)
-    .is("page_id", null)
-    .order("created_at", { ascending: false })
-    .limit(20)
-  return withLikes((data ?? []) as Record<string, unknown>[])
+  return readPosts((query) => query.eq("author_id", authorId).is("page_id", null).limit(20), false)
 }
 
 export async function getPostsByPage(pageId: string) {
   if (!isSupabaseConfigured()) return [] as PostCard[]
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from("posts")
-    .select(POST_SELECT)
-    .eq("page_id", pageId)
-    .order("created_at", { ascending: false })
-    .limit(20)
-  return withLikes((data ?? []) as Record<string, unknown>[])
+  return readPosts((query) => query.eq("page_id", pageId).limit(20), false)
+}
+
+export async function getPostsByIds(ids: string[]) {
+  if (!isSupabaseConfigured() || ids.length === 0) return [] as PostCard[]
+  return readPosts((query) => query.in("id", ids).limit(ids.length), false)
 }
 
 export async function getFollowState(pageId: string) {
@@ -245,16 +273,23 @@ const PLAYTEST_SELECT = `
   page:pages!page_id (slug, name, logo_path)
 `
 
-export async function getPlaytests(filters: { q?: string; state?: string; location?: string; mine?: boolean }) {
+export async function getPlaytests(filters: { q?: string; state?: string; location?: string; mine?: boolean; pay?: string; ids?: string[] }) {
   if (!isSupabaseConfigured()) return [] as PlaytestCard[]
   const supabase = await createClient()
   const viewer = await getViewer()
   let query = supabase.from("playtest_listings").select(PLAYTEST_SELECT).order("created_at", { ascending: false }).limit(40)
-  if (!filters.mine) query = query.eq("status", "open")
+  if (filters.ids) {
+    if (filters.ids.length === 0) return []
+    query = query.in("id", filters.ids)
+  } else if (!filters.mine) {
+    query = query.eq("status", "open")
+  }
   if (filters.mine && viewer?.page) query = query.eq("page_id", viewer.page.id)
   if (filters.mine && !viewer?.page) return []
   if (filters.state) query = query.eq("state", filters.state)
   if (filters.location) query = query.eq("location_type", filters.location)
+  if (filters.pay === "paid") query = query.not("compensation", "is", null).neq("compensation", "")
+  if (filters.pay === "unpaid") query = query.or("compensation.is.null,compensation.eq.")
   if (filters.q) {
     const term = filters.q.replace(/[%_,]/g, " ").trim()
     if (term) query = query.or(`title.ilike.%${term}%,game_title.ilike.%${term}%`)
@@ -295,19 +330,20 @@ function mapPlaytest(row: Record<string, unknown>): PlaytestCard | null {
   }
 }
 
-export async function getOpportunityPosts(type: "job" | "collab", q?: string) {
+export async function getOpportunityPosts(type: "job" | "collab", q?: string, role?: string) {
   if (!isSupabaseConfigured()) return [] as PostCard[]
-  const supabase = await createClient()
-  let query = supabase.from("posts").select(POST_SELECT).eq("post_type", type).order("created_at", { ascending: false }).limit(40)
-  if (q) {
-    const term = q.replace(/[%_,]/g, " ").trim()
-    if (term) {
-      const column = type === "job" ? "job_title" : "collab_title"
-      query = query.or(`${column}.ilike.%${term}%,body.ilike.%${term}%`)
+  return readPosts((query) => {
+    let next = query.eq("post_type", type).limit(40)
+    if (type === "collab" && role) next = next.contains("collab_looking_for", [role])
+    if (q) {
+      const term = q.replace(/[%_,]/g, " ").trim()
+      if (term) {
+        const column = type === "job" ? "job_title" : "collab_title"
+        next = next.or(`${column}.ilike.%${term}%,body.ilike.%${term}%`)
+      }
     }
-  }
-  const { data } = await query
-  return withLikes((data ?? []) as Record<string, unknown>[])
+    return next
+  })
 }
 
 export async function getInterestInbox() {
@@ -324,23 +360,23 @@ export async function getInterestInbox() {
   return (data ?? []) as InterestInboxItem[]
 }
 
-export async function searchPeople(filters: { q?: string; role?: string; state?: string }) {
+export async function searchPeople(filters: { q?: string; role?: string; state?: string; language?: string }) {
   if (!isSupabaseConfigured()) return [] as Profile[]
   const supabase = await createClient()
-  let query = supabase
-    .from("profiles")
-    .select("*")
-    .eq("onboarding_complete", true)
-    .order("created_at", { ascending: false })
-    .limit(24)
-  if (filters.role) query = query.eq("role", filters.role)
-  if (filters.state) query = query.eq("state", filters.state)
-  if (filters.q) {
-    const term = filters.q.replace(/[%_,]/g, " ").trim()
-    if (term) query = query.or(`display_name.ilike.%${term}%,username.ilike.%${term}%,headline.ilike.%${term}%`)
+  const build = (language: boolean) => {
+    let query = supabase.from("profiles").select("*").eq("onboarding_complete", true).order("created_at", { ascending: false }).limit(24)
+    if (filters.role) query = query.eq("role", filters.role)
+    if (filters.state) query = query.eq("state", filters.state)
+    if (language && filters.language) query = query.contains("languages", [filters.language])
+    if (filters.q) {
+      const term = filters.q.replace(/[%_,]/g, " ").trim()
+      if (term) query = query.or(`display_name.ilike.%${term}%,username.ilike.%${term}%,headline.ilike.%${term}%`)
+    }
+    return query
   }
-  const { data } = await query
-  return (data ?? []).map((row) => mapProfile(row as Record<string, unknown>))
+  const first = await build(true)
+  const rows = first.error ? (await build(false)).data : first.data
+  return (rows ?? []).map((row) => mapProfile(row as Record<string, unknown>))
 }
 
 export async function studioPagesFor(ownerIds: string[]) {
@@ -365,19 +401,17 @@ export async function searchPages(filters: { q?: string; state?: string }) {
 
 export async function searchPosts(filters: { q?: string; postType?: string }) {
   if (!isSupabaseConfigured()) return [] as PostCard[]
-  const supabase = await createClient()
-  let query = supabase.from("posts").select(POST_SELECT).order("created_at", { ascending: false }).limit(24)
-  if (filters.postType) query = query.eq("post_type", filters.postType)
-  if (filters.q) {
-    const term = filters.q.replace(/[%_,]/g, " ").trim()
-    if (term) {
-      query = query.or(
-        `body.ilike.%${term}%,job_title.ilike.%${term}%,collab_title.ilike.%${term}%,game_title.ilike.%${term}%`,
-      )
+  return readPosts((query) => {
+    let next = query.limit(24)
+    if (filters.postType) next = next.eq("post_type", filters.postType)
+    if (filters.q) {
+      const term = filters.q.replace(/[%_,]/g, " ").trim()
+      if (term) {
+        next = next.or(`body.ilike.%${term}%,job_title.ilike.%${term}%,collab_title.ilike.%${term}%,game_title.ilike.%${term}%`)
+      }
     }
-  }
-  const { data } = await query
-  return withLikes((data ?? []) as Record<string, unknown>[])
+    return next
+  })
 }
 
 export async function getNotifications() {
@@ -408,15 +442,13 @@ export async function getSuggestions() {
   const empty = {
     pages: [] as Array<StudioPage & { following: boolean }>,
     playtests: [] as PlaytestCard[],
+    featured: null as (StudioPage & { following: boolean }) | null,
+    week: [] as Array<{ kind: string; title: string; meta: string; href: string }>,
   }
   if (!isSupabaseConfigured()) return empty
   const supabase = await createClient()
   const viewer = await getViewer()
-  const { data: pages } = await supabase
-    .from("pages")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(6)
+  const { data: pages } = await supabase.from("pages").select("*").order("created_at", { ascending: false }).limit(6)
 
   let followed = new Set<string>()
   if (viewer) {
@@ -429,6 +461,9 @@ export async function getSuggestions() {
     .slice(0, 4)
     .map((page) => ({ ...page, following: followed.has(page.id) }))
 
+  const { data: featuredRows } = await supabase.from("pages").select("*").eq("featured", true).limit(4)
+  const featuredPage = ((featuredRows ?? []) as StudioPage[])[0] ?? null
+
   const { data: playtests } = await supabase
     .from("playtest_listings")
     .select(PLAYTEST_SELECT)
@@ -436,11 +471,35 @@ export async function getSuggestions() {
     .order("created_at", { ascending: false })
     .limit(3)
 
+  const openPlaytests = (playtests ?? [])
+    .map((row) => mapPlaytest(row as unknown as Record<string, unknown>))
+    .filter((row): row is PlaytestCard => row !== null)
+
+  const week: Array<{ kind: string; title: string; meta: string; href: string }> = []
+  for (const listing of openPlaytests.slice(0, 2)) {
+    week.push({ kind: "Playtest", title: listing.title, meta: listing.game_title, href: "/opportunities?tab=playtests" })
+  }
+  const { data: weekPosts } = await supabase
+    .from("posts")
+    .select("id, post_type, job_title, collab_title, created_at")
+    .in("post_type", ["job", "collab"])
+    .order("created_at", { ascending: false })
+    .limit(3)
+  for (const row of weekPosts ?? []) {
+    const post = row as { id: string; post_type: string; job_title: string | null; collab_title: string | null }
+    week.push({
+      kind: post.post_type === "job" ? "Job" : "Collab",
+      title: post.job_title || post.collab_title || "Post",
+      meta: "Open",
+      href: `/post/${post.id}`,
+    })
+  }
+
   return {
     pages: suggestions,
-    playtests: (playtests ?? [])
-      .map((row) => mapPlaytest(row as unknown as Record<string, unknown>))
-      .filter((row): row is PlaytestCard => row !== null),
+    playtests: openPlaytests,
+    featured: featuredPage ? { ...featuredPage, following: followed.has(featuredPage.id) } : null,
+    week: week.slice(0, 4),
   }
 }
 

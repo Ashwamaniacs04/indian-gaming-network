@@ -59,6 +59,18 @@ export function friendlyDbError(message: string) {
   if (lower.includes("cannot follow your own")) return "You cannot follow your own page."
   if (lower.includes("not open")) return "This playtest is closed."
   if (lower.includes("only allowed on job")) return "You can only apply to jobs and collabs."
+  if (lower.includes("cannot connect with yourself")) return "You cannot connect with yourself."
+  if (lower.includes("profile_connections_undirected") || lower.includes("profile_connections_pair")) {
+    return "You already have a connection with this person."
+  }
+  if (lower.includes("schema cache") || lower.includes("could not find the table")) {
+    return "This part is not ready yet. Run the new SQL in Supabase, then try again."
+  }
+  if (lower.includes("payment is not set up")) {
+    return "Payment is not set up yet. Add the Razorpay secret, then try again."
+  }
+  if (lower.includes("payment could not be confirmed")) return "Payment could not be confirmed."
+  if (lower.includes("not waiting for payment")) return "This trailer is not waiting for payment."
   if (lower.includes("row-level security") || lower.includes("permission denied")) {
     return "You do not have permission to do that."
   }

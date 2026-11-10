@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { ProfileView } from "@/components/profile-view"
 import { getViewer } from "@/lib/auth"
+import { getProfileConnection } from "@/server/connections"
 import { getExperience, getPageByOwner, getPortfolio, getPostsByAuthor, getProfileByUsername } from "@/server/queries"
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
@@ -21,12 +22,13 @@ async function Profile({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
   const profile = await getProfileByUsername(username)
   if (!profile || !profile.onboarding_complete) notFound()
-  const [page, portfolio, experience, posts, viewer] = await Promise.all([
+  const [page, portfolio, experience, posts, viewer, connection] = await Promise.all([
     getPageByOwner(profile.id),
     getPortfolio(profile.id),
     getExperience(profile.id),
     getPostsByAuthor(profile.id),
     getViewer(),
+    getProfileConnection(profile.id),
   ])
-  return <ProfileView profile={profile} page={page} portfolio={portfolio} experience={experience} posts={posts} viewer={viewer} />
+  return <ProfileView profile={profile} page={page} portfolio={portfolio} experience={experience} posts={posts} viewer={viewer} connection={connection} />
 }

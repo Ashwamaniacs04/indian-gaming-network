@@ -1,4 +1,12 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: Milkyway;
+  src: url("/fonts/milkyway.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 

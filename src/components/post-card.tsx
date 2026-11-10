@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PersonLink } from "@/components/person"
 import { addComment, deleteComment, deletePost, toggleLike } from "@/server/actions/posts"
+import { markPostFilled, pinPost, reportContent, saveListing } from "@/server/actions/platform"
 import { expressInterest } from "@/server/actions/social"
 import { JOB_TYPE_LABELS, roleLabel } from "@/lib/constants"
 import { formatWhen, publicStorageUrl } from "@/lib/format"
@@ -16,11 +17,17 @@ export function PostCard({
   viewer,
   detailed = false,
   showInterest = false,
+  saved = false,
+  pinned = false,
+  pinScope = null,
 }: {
   post: PostCardData
   viewer: Viewer | null
   detailed?: boolean
   showInterest?: boolean
+  saved?: boolean
+  pinned?: boolean
+  pinScope?: "profile" | "page" | null
 }) {
   const authorHref = post.page ? `/p/${post.page.slug}` : `/u/${post.author.username}`
   const authorName = post.page?.name ?? post.author.display_name
@@ -37,10 +44,12 @@ export function PostCard({
     <article className="overflow-hidden rounded-xl border bg-card shadow-sm">
       <div className="p-4 pb-0">
         <PersonLink href={authorHref} name={authorName} path={authorPath} meta={meta} />
+        {pinned ? <Badge className="mt-2" variant="outline">Pinned</Badge> : null}
       </div>
 
       {post.post_type === "image" ? (
         <>
+          {post.image_expired && !image ? <p className="mx-4 mt-3 text-sm text-muted-foreground">Image expired. The caption is still here.</p> : null}
           {image ? (
             detailed ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -90,6 +99,7 @@ export function PostCard({
 
       {post.post_type === "job" && post.job_title ? (
         <div className="px-4 pt-4">
+          {post.closed_at ? <Badge variant="secondary">Filled</Badge> : null}
           <h2 className="text-lg font-semibold">
             {detailed ? post.job_title : <Link href={`/post/${post.id}`} className="hover:underline">{post.job_title}</Link>}
           </h2>
@@ -104,6 +114,7 @@ export function PostCard({
 
       {post.post_type === "collab" && post.collab_title ? (
         <div className="px-4 pt-4">
+          {post.closed_at ? <Badge variant="secondary">Filled</Badge> : null}
           <h2 className="text-lg font-semibold">
             {detailed ? post.collab_title : <Link href={`/post/${post.id}`} className="hover:underline">{post.collab_title}</Link>}
           </h2>
@@ -155,9 +166,37 @@ export function PostCard({
             </Button>
           </form>
         ) : null}
+        {viewer && (post.post_type === "job" || post.post_type === "collab") ? (
+          <form action={saveListing}>
+            <input type="hidden" name="target_type" value="post" />
+            <input type="hidden" name="target_id" value={post.id} />
+            <Button type="submit" variant="ghost" size="sm">{saved ? "Saved" : "Save"}</Button>
+          </form>
+        ) : null}
+        {owned && (post.post_type === "job" || post.post_type === "collab") && !post.closed_at ? (
+          <form action={markPostFilled}>
+            <input type="hidden" name="post_id" value={post.id} />
+            <Button type="submit" variant="ghost" size="sm">Mark filled</Button>
+          </form>
+        ) : null}
+        {owned && pinScope ? (
+          <form action={pinPost}>
+            <input type="hidden" name="post_id" value={post.id} />
+            <input type="hidden" name="scope" value={pinScope} />
+            {pinned ? <input type="hidden" name="clear" value="1" /> : null}
+            <Button type="submit" variant="ghost" size="sm">{pinned ? "Unpin" : "Pin"}</Button>
+          </form>
+        ) : null}
       </div>
 
-      {(detailed || showInterest) && !owned && (post.post_type === "job" || post.post_type === "collab") ? (
+      {viewer && !owned ? (
+        <details className="px-4 pb-3 text-sm">
+          <summary className="cursor-pointer text-muted-foreground">Report</summary>
+          <ReportBox targetType="post" targetId={post.id} />
+        </details>
+      ) : null}
+
+      {(detailed || showInterest) && !owned && !post.closed_at && (post.post_type === "job" || post.post_type === "collab") ? (
         <div className="px-4 pb-4">
           <InterestBox postId={post.id} signedIn={Boolean(viewer)} />
         </div>
@@ -175,6 +214,17 @@ function youtubeCopy(body: string) {
     title: trimmed.slice(0, newline).trim() || "YouTube video",
     note: trimmed.slice(newline + 1).trim(),
   }
+}
+
+export function ReportBox({ targetType, targetId }: { targetType: "post" | "profile"; targetId: string }) {
+  return (
+    <ActionForm action={reportContent} className="mt-2 space-y-2">
+      <input type="hidden" name="target_type" value={targetType} />
+      <input type="hidden" name="target_id" value={targetId} />
+      <AreaField name="reason" rows={2} placeholder="Why are you reporting this?" />
+      <SubmitButton size="sm" variant="outline" pendingLabel="Sending…">Send report</SubmitButton>
+    </ActionForm>
+  )
 }
 
 function InterestBox({ postId, signedIn }: { postId: string; signedIn: boolean }) {

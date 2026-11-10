@@ -101,6 +101,33 @@ export const COLLAB_ROLES = [
   "Community",
 ] as const
 
+export const GAME_GENRES = [
+  "Action",
+  "Adventure",
+  "RPG",
+  "Strategy",
+  "Simulation",
+  "Sports",
+  "Racing",
+  "Puzzle",
+  "Horror",
+  "Casual",
+] as const
+
+export const LANGUAGES = [
+  "Hindi",
+  "English",
+  "Bengali",
+  "Marathi",
+  "Telugu",
+  "Tamil",
+  "Gujarati",
+  "Urdu",
+  "Kannada",
+  "Malayalam",
+  "Punjabi",
+] as const
+
 export const AVAILABILITY_OPTIONS = [
   "Open to work",
   "Open to collabs",

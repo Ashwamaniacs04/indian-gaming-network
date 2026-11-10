@@ -6,14 +6,15 @@ import { EmptyState, UserAvatar } from "@/components/person"
 import { PostCard } from "@/components/post-card"
 import { RolePlayerCard } from "@/components/role-card"
 import { NativeSelect, TextField } from "@/components/form-kit"
-import { INDIAN_STATES, POST_TYPE_OPTIONS, ROLE_OPTIONS } from "@/lib/constants"
+import { INDIAN_STATES, LANGUAGES, POST_TYPE_OPTIONS, ROLE_OPTIONS } from "@/lib/constants"
 import { locationLabel } from "@/lib/format"
 import { getViewer } from "@/lib/auth"
+import { searchPeopleByGame } from "@/server/platform-data"
 import { getPlaytests, searchPages, searchPeople, searchPosts, studioPagesFor } from "@/server/queries"
 
 export const metadata = { title: "Search" }
 
-type Filters = { q?: string; tab?: string; role?: string; state?: string; post_type?: string }
+type Filters = { q?: string; tab?: string; role?: string; state?: string; post_type?: string; language?: string; game?: string }
 
 export default function SearchPage({ searchParams }: { searchParams: Promise<Filters> }) {
   return (
@@ -41,6 +42,13 @@ async function Search({ searchParams }: { searchParams: Promise<Filters> }) {
             {ROLE_OPTIONS.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
           </NativeSelect>
         ) : null}
+        {tab === "people" ? (
+          <NativeSelect name="language" defaultValue={params.language ?? ""}>
+            <option value="">Any language</option>
+            {LANGUAGES.map((language) => <option key={language} value={language}>{language}</option>)}
+          </NativeSelect>
+        ) : null}
+        {tab === "people" ? <TextField name="game" placeholder="Game on their card" defaultValue={params.game ?? ""} /> : null}
         {tab === "posts" ? (
           <NativeSelect name="post_type" defaultValue={params.post_type ?? ""}>
             <option value="">Any post type</option>
@@ -61,7 +69,7 @@ async function Search({ searchParams }: { searchParams: Promise<Filters> }) {
         <Tab href={hrefFor("posts", params)} active={tab === "posts"}>Posts</Tab>
         <Tab href={hrefFor("playtests", params)} active={tab === "playtests"}>Playtests</Tab>
       </div>
-      {tab === "people" ? <People q={q} role={params.role} state={params.state} /> : null}
+      {tab === "people" ? <People q={q} role={params.role} state={params.state} language={params.language} game={params.game} /> : null}
       {tab === "pages" ? <Pages q={q} state={params.state} /> : null}
       {tab === "posts" ? <Posts q={q} postType={params.post_type} viewer={viewer} /> : null}
       {tab === "playtests" ? <Playtests q={q} /> : null}
@@ -75,6 +83,8 @@ function hrefFor(tab: string, params: Filters) {
   if (params.q) query.set("q", params.q)
   if (params.state && (tab === "people" || tab === "pages")) query.set("state", params.state)
   if (params.role && tab === "people") query.set("role", params.role)
+  if (params.language && tab === "people") query.set("language", params.language)
+  if (params.game && tab === "people") query.set("game", params.game)
   if (params.post_type && tab === "posts") query.set("post_type", params.post_type)
   return `/search?${query.toString()}`
 }
@@ -83,9 +93,25 @@ function Tab({ href, active, children }: { href: string; active: boolean; childr
   return <Link href={href} className={`rounded-full px-3 py-1 text-sm ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}>{children}</Link>
 }
 
-async function People({ q, role, state }: { q: string; role?: string; state?: string }) {
-  const people = await searchPeople({ q, role, state })
-  if (people.length === 0) return <EmptyState title="No people found" body="Try a different name, role, or state." />
+async function People({ q, role, state, language, game }: { q: string; role?: string; state?: string; language?: string; game?: string }) {
+  const gameTerm = game?.trim() ?? ""
+  let people = gameTerm.length >= 2 ? await searchPeopleByGame(gameTerm) : await searchPeople({ q, role, state, language })
+  if (gameTerm.length >= 2) {
+    const needle = q.trim().toLowerCase()
+    people = people.filter((person) => {
+      if (role && person.role !== role) return false
+      if (state && person.state !== state) return false
+      if (language && !person.languages.includes(language)) return false
+      if (needle) {
+        const hay = `${person.display_name} ${person.username} ${person.headline ?? ""}`.toLowerCase()
+        if (!hay.includes(needle)) return false
+      }
+      return true
+    })
+  }
+  if (people.length === 0) {
+    return <EmptyState title="No people found" body={gameTerm.length >= 2 ? "No one lists that game on their card yet." : "Try a different name, role, language, or state."} />
+  }
   const studios = people.filter((person) => person.role === "studio").map((person) => person.id)
   const pages = await studioPagesFor(studios)
   const pageByOwner = new Map(pages.map((page) => [page.owner_id, page]))

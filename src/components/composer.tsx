@@ -111,7 +111,8 @@ export function Composer({
 
         {type === "image" ? (
           <Field label="Picture">
-            <input name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required className="block w-full text-sm" />
+            <input name="image" type="file" accept="image/jpeg,image/webp" required className="block w-full text-sm" />
+            <p className="text-xs text-muted-foreground">JPEG or WebP, up to 1 MB. Feed images are removed after 7 days. New accounts can post 3 images a day.</p>
           </Field>
         ) : null}
 

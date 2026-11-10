@@ -36,6 +36,7 @@ export function RolePlayerCard({
         <h2 className="text-sm font-semibold">{facts.title}</h2>
       )}
       {href && profile.headline ? <p className="mt-2 line-clamp-2 text-sm">{profile.headline}</p> : null}
+      {profile.looking_for ? <p className="mt-2 text-sm text-muted-foreground">Looking for {profile.looking_for}</p> : null}
       {facts.groups.length > 0 ? (
         <div className={`${href ? "mt-3" : "mt-2"} space-y-2`}>
           {href ? <p className="text-xs font-medium text-muted-foreground">{facts.title}</p> : null}

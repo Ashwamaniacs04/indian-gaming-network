@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bell, Briefcase, Home, Search, UserRound } from "lucide-react"
+import { Bell, Briefcase, CalendarDays, Clapperboard, Gamepad2, Home, Search, UserRound } from "lucide-react"
 import type { ReactNode } from "react"
 import { followPage, unfollowPage } from "@/server/actions/social"
 import { signOut } from "@/server/actions/auth"
@@ -11,16 +11,27 @@ import { ThemeSwitch } from "@/components/theme-switch"
 import { NotificationListener } from "@/components/notification-listener"
 import { UserAvatar } from "@/components/person"
 import { Button } from "@/components/ui/button"
+import { profileCardGap } from "@/lib/card-gap"
 import { roleLabel } from "@/lib/constants"
 import { locationLabel } from "@/lib/format"
 import type { PlaytestCard, StudioPage, Viewer } from "@/lib/types"
 
 const links = [
   { href: "/feed", label: "Feed", icon: Home },
+  { href: "/upcoming", label: "Upcoming", icon: Clapperboard },
   { href: "/opportunities", label: "Opportunities", icon: Briefcase },
+  { href: "/meetups", label: "Meetups", icon: CalendarDays },
+  { href: "/games", label: "Games", icon: Gamepad2 },
   { href: "/search", label: "Search", icon: Search },
   { href: "/notifications", label: "Alerts", icon: Bell },
 ]
+
+type RailSuggestions = {
+  pages: Array<StudioPage & { following: boolean }>
+  playtests: PlaytestCard[]
+  featured: (StudioPage & { following: boolean }) | null
+  week: Array<{ kind: string; title: string; meta: string; href: string }>
+}
 
 export function Shell({
   viewer,
@@ -28,17 +39,16 @@ export function Shell({
   children,
 }: {
   viewer: Viewer | null
-  suggestions: {
-    pages: Array<StudioPage & { following: boolean }>
-    playtests: PlaytestCard[]
-  }
+  suggestions: RailSuggestions
   children: ReactNode
 }) {
   return (
     <div className="min-h-full">
       {viewer ? <NotificationListener userId={viewer.id} /> : null}
       <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
+        <div className="mx-auto grid items-center min-[1700px]:grid-cols-[minmax(0,1fr)_72rem_minmax(0,1fr)]">
+          <Slogan>Be Coolest Professional</Slogan>
+          <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 min-[1700px]:mx-0 min-[1700px]:max-w-none">
           <BrandLockup href={viewer ? "/feed" : "/"} shortOnMobile />
           <form action="/search" className="mx-auto hidden min-w-0 w-full max-w-md lg:block">
             <label className="relative block">
@@ -69,6 +79,8 @@ export function Shell({
               </>
             )}
           </div>
+          </div>
+          <Slogan>Be Respectful</Slogan>
         </div>
       </header>
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[220px_minmax(0,1fr)_280px]">
@@ -84,6 +96,7 @@ export function Shell({
               </Link>
             ) : null}
             <DesktopNav viewer={viewer} />
+            {viewer ? <FinishCard viewer={viewer} /> : null}
           </div>
         </aside>
         <main className="min-w-0 pb-24 lg:pb-6">{children}</main>
@@ -117,6 +130,11 @@ function DesktopNav({ viewer }: { viewer: Viewer | null }) {
           Settings
         </Link>
       ) : null}
+      {viewer?.isAdmin ? (
+        <Link href="/admin" className={`block rounded-lg px-3 py-2 text-sm hover:bg-muted ${pathname.startsWith("/admin") ? "bg-muted font-medium text-foreground" : "text-muted-foreground"}`}>
+          Admin
+        </Link>
+      ) : null}
     </nav>
   )
 }
@@ -147,12 +165,12 @@ function MobileNav({ viewer }: { viewer: Viewer | null }) {
   const profileHref = viewer ? `/u/${viewer.profile.username}` : "/login"
   const items = [...links, { href: profileHref, label: "Profile", icon: UserRound }]
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-card lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t bg-card lg:hidden">
       {items.map((item) => {
         const active = pathname.startsWith(item.href)
         const Icon = item.icon
         return (
-          <Link key={item.href} href={item.href} className={`flex min-w-0 flex-col items-center gap-1 px-1 py-2 text-[11px] ${active ? "text-primary" : "text-muted-foreground"}`}>
+          <Link key={item.href} href={item.href} className={`flex w-16 shrink-0 flex-col items-center gap-1 px-1 py-2 text-[11px] ${active ? "text-primary" : "text-muted-foreground"}`}>
             <Icon className="size-4" />
             <MobileLabel label={item.label} />
           </Link>
@@ -163,6 +181,14 @@ function MobileNav({ viewer }: { viewer: Viewer | null }) {
 }
 
 function MobileLabel({ label }: { label: string }) {
+  if (label === "Upcoming") {
+    return (
+      <span className="max-w-full text-center text-[10px] leading-tight">
+        <span className="hidden min-[400px]:inline">Upcoming</span>
+        <span className="min-[400px]:hidden">Games</span>
+      </span>
+    )
+  }
   if (label !== "Opportunities") {
     return <span className="max-w-full truncate text-[10px] leading-tight">{label}</span>
   }
@@ -174,14 +200,38 @@ function MobileLabel({ label }: { label: string }) {
   )
 }
 
-function Rail({
-  suggestions,
-}: {
-  suggestions: {
-    pages: Array<StudioPage & { following: boolean }>
-    playtests: PlaytestCard[]
-  }
-}) {
+function Slogan({ children }: { children: string }) {
+  return (
+    <p
+      className="mx-2 hidden justify-self-center rounded-xl bg-black px-3 py-1.5 text-center text-lg leading-none text-[#ff8a00] min-[1700px]:block"
+      style={{ fontFamily: "Milkyway, 'Trebuchet MS', sans-serif" }}
+    >
+      {children}
+    </p>
+  )
+}
+
+function FinishCard({ viewer }: { viewer: Viewer }) {
+  const gap = profileCardGap(viewer.profile, Boolean(viewer.page))
+  if (!gap) return null
+  return (
+    <section className="rounded-xl border bg-card p-4">
+      <svg viewBox="0 0 220 72" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2 h-16 w-full text-primary" aria-hidden="true">
+        <rect x="8" y="16" width="56" height="40" rx="10" />
+        <circle cx="28" cy="36" r="5" />
+        <circle cx="44" cy="36" r="5" />
+        <path d="M84 24h120M84 36h92M84 48h70" />
+      </svg>
+      <h2 className="text-sm font-semibold">{gap.title}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{gap.body}</p>
+      <Button size="sm" className="mt-3" asChild>
+        <Link href={gap.href}>Add details</Link>
+      </Button>
+    </section>
+  )
+}
+
+function Rail({ suggestions }: { suggestions: RailSuggestions }) {
   return (
     <>
       <section className="rounded-xl border bg-card p-4">
@@ -219,6 +269,40 @@ function Rail({
                 <span className="block truncate text-sm font-medium">{listing.title}</span>
                 <span className="block truncate text-xs text-muted-foreground">{listing.game_title} · {listing.page?.name}</span>
               </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <section className="rounded-xl border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">{suggestions.featured ? suggestions.featured.name : "Featured page"}</h2>
+          <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Sponsored</span>
+        </div>
+        {suggestions.featured ? (
+          <div className="mt-3">
+            <Link href={`/p/${suggestions.featured.slug}`} className="flex items-center gap-2">
+              <UserAvatar name={suggestions.featured.name} path={suggestions.featured.logo_path} className="size-8" />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">Studio page</span>
+                <span className="block truncate text-xs text-muted-foreground">{suggestions.featured.headline || locationLabel(suggestions.featured.city, suggestions.featured.state) || "Studio"}</span>
+              </span>
+            </Link>
+            <Button size="sm" variant="outline" className="mt-3" asChild>
+              <Link href={`/p/${suggestions.featured.slug}`}>View page</Link>
+            </Button>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">A studio page can be featured here.</p>
+        )}
+      </section>
+      <section className="rounded-xl border bg-card p-4">
+        <h2 className="text-sm font-semibold">This week</h2>
+        <div className="mt-3 space-y-3">
+          {suggestions.week.length === 0 ? <p className="text-sm text-muted-foreground">Nothing new this week.</p> : null}
+          {suggestions.week.map((item) => (
+            <Link key={`${item.kind}-${item.href}-${item.title}`} href={item.href} className="block">
+              <span className="block text-sm font-medium">{item.kind}</span>
+              <span className="block truncate text-xs text-muted-foreground">{item.title} · {item.meta}</span>
             </Link>
           ))}
         </div>

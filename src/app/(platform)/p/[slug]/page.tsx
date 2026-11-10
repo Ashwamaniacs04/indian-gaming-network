@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button"
 import { PostCard } from "@/components/post-card"
 import { EmptyState, UserAvatar } from "@/components/person"
 import { followPage, unfollowPage, expressInterest } from "@/server/actions/social"
-import { ActionForm, AreaField, SubmitButton } from "@/components/form-kit"
+
 import { getViewer } from "@/lib/auth"
 import { locationLabel, publicStorageUrl } from "@/lib/format"
+import { ActionForm, AreaField, SubmitButton, TextField } from "@/components/form-kit"
+import { addPageMember, removePageMember } from "@/server/actions/platform"
+import { getPageMembers } from "@/server/platform-data"
 import { getFollowState, getPageBySlug, getPlaytestsByPage, getPostsByPage } from "@/server/queries"
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -28,12 +31,14 @@ async function PageView({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const page = await getPageBySlug(slug)
   if (!page) notFound()
-  const [follow, playtests, posts, viewer] = await Promise.all([
+  const [follow, playtests, posts, viewer, members] = await Promise.all([
     getFollowState(page.id),
     getPlaytestsByPage(page.id),
     getPostsByPage(page.id),
     getViewer(),
+    getPageMembers(page.id),
   ])
+  const pinnedId = (page as { pinned_post_id?: string | null }).pinned_post_id ?? null
   const banner = publicStorageUrl("banners", page.banner_path)
   const owned = viewer?.id === page.owner_id
 
@@ -77,6 +82,37 @@ async function PageView({ params }: { params: Promise<{ slug: string }> }) {
 
       {page.about ? <section className="rounded-xl border bg-card p-4"><h2 className="text-sm font-semibold">About</h2><p className="mt-2 text-sm whitespace-pre-wrap">{page.about}</p></section> : null}
 
+      <section className="rounded-xl border bg-card p-4">
+        <h2 className="text-sm font-semibold">Team</h2>
+        {members.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">{owned ? "Add people by username. They show on this page and cannot edit it." : "No other people are listed on this page yet."}</p> : (
+          <ul className="mt-3 space-y-2">
+            {members.map((member) => (
+              <li key={member.id} className="flex items-center justify-between gap-2">
+                <Link href={`/u/${member.username}`} className="flex min-w-0 items-center gap-2">
+                  <UserAvatar name={member.display_name} path={member.avatar_path} className="size-8" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{member.display_name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{member.headline || `@${member.username}`}</span>
+                  </span>
+                </Link>
+                {owned ? (
+                  <form action={removePageMember}>
+                    <input type="hidden" name="profile_id" value={member.id} />
+                    <Button type="submit" size="sm" variant="outline">Remove</Button>
+                  </form>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        {owned ? (
+          <ActionForm action={addPageMember} className="mt-3 flex gap-2">
+            <TextField name="username" placeholder="Username" required />
+            <SubmitButton size="sm" pendingLabel="Adding…">Add</SubmitButton>
+          </ActionForm>
+        ) : null}
+      </section>
+
       {page.games.length > 0 || page.specialties.length > 0 ? (
         <section className="rounded-xl border bg-card p-4">
           <h2 className="text-sm font-semibold">Games and specialties</h2>
@@ -109,7 +145,9 @@ async function PageView({ params }: { params: Promise<{ slug: string }> }) {
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold">Posts</h2>
-        {posts.length === 0 ? <EmptyState title="No posts yet" body={owned ? "Publish a post as this page from the feed so it shows up here." : "This page has not published a post yet."} /> : posts.map((post) => <PostCard key={post.id} post={post} viewer={viewer} />)}
+        {posts.length === 0 ? <EmptyState title="No posts yet" body={owned ? "Publish a post as this page from the feed so it shows up here." : "This page has not published a post yet."} /> : [...posts].sort((left, right) => Number(right.id === pinnedId) - Number(left.id === pinnedId)).map((post) => (
+          <PostCard key={post.id} post={post} viewer={viewer} pinned={post.id === pinnedId} pinScope={owned ? "page" : null} />
+        ))}
       </section>
     </div>
   )
