@@ -34,6 +34,11 @@ function countOf(value: unknown) {
   return 0
 }
 
+function asPage(row: unknown): StudioPage {
+  const page = row as StudioPage
+  return { ...page, verified: Boolean(page.verified) }
+}
+
 function mapPost(row: Record<string, unknown>, liked: Set<string>): PostCard {
   const author = relation<PostCard["author"]>(row.author) ?? {
     username: "member",
@@ -41,6 +46,7 @@ function mapPost(row: Record<string, unknown>, liked: Set<string>): PostCard {
     avatar_path: null,
     headline: null,
     role: "gamer",
+    verified: false,
   }
   const page = relation<NonNullable<PostCard["page"]>>(row.page)
   return {
@@ -60,8 +66,8 @@ function mapPost(row: Record<string, unknown>, liked: Set<string>): PostCard {
     created_at: String(row.created_at),
     closed_at: (row.closed_at as string | null) ?? null,
     image_expired: Boolean(row.image_expired),
-    author,
-    page,
+    author: { ...author, verified: Boolean(author.verified) },
+    page: page ? { ...page, verified: Boolean(page.verified) } : null,
     like_count: countOf(row.likes),
     comment_count: countOf(row.comments),
     liked_by_me: liked.has(String(row.id)),
@@ -71,8 +77,8 @@ function mapPost(row: Record<string, unknown>, liked: Set<string>): PostCard {
 const POST_SELECT = `
   id, post_type, body, image_path, youtube_url, job_title, job_location, job_type,
   collab_title, collab_looking_for, game_title, created_at, closed_at, image_expired, image_expires_at,
-  author:profiles!author_id (username, display_name, avatar_path, headline, role),
-  page:pages!page_id (slug, name, logo_path),
+  author:profiles!author_id (username, display_name, avatar_path, headline, role, verified),
+  page:pages!page_id (slug, name, logo_path, verified),
   likes:post_likes(count),
   comments:post_comments(count)
 `
@@ -198,14 +204,14 @@ export async function getPageByOwner(ownerId: string) {
   if (!isSupabaseConfigured()) return null
   const supabase = await createClient()
   const { data } = await supabase.from("pages").select("*").eq("owner_id", ownerId).maybeSingle()
-  return (data as StudioPage | null) ?? null
+  return data ? asPage(data) : null
 }
 
 export async function getPageBySlug(slug: string) {
   if (!isSupabaseConfigured()) return null
   const supabase = await createClient()
   const { data } = await supabase.from("pages").select("*").eq("slug", slug).maybeSingle()
-  return (data as StudioPage | null) ?? null
+  return data ? asPage(data) : null
 }
 
 export async function getPortfolio(profileId: string) {
@@ -273,40 +279,51 @@ const PLAYTEST_SELECT = `
   page:pages!page_id (slug, name, logo_path)
 `
 
+const PLAYTEST_SELECT_VERIFIED = PLAYTEST_SELECT.replace(
+  "(slug, name, logo_path)",
+  "(slug, name, logo_path, verified)",
+)
+
+async function loadPlaytests(
+  run: (select: string) => PromiseLike<{ data: unknown; error: { message?: string } | null }>,
+) {
+  const first = await run(PLAYTEST_SELECT_VERIFIED)
+  const data = first.error ? (await run(PLAYTEST_SELECT)).data : first.data
+  const rows = Array.isArray(data) ? data : []
+  return rows
+    .map((row) => mapPlaytest(row as Record<string, unknown>))
+    .filter((row): row is PlaytestCard => row !== null)
+}
+
 export async function getPlaytests(filters: { q?: string; state?: string; location?: string; mine?: boolean; pay?: string; ids?: string[] }) {
   if (!isSupabaseConfigured()) return [] as PlaytestCard[]
   const supabase = await createClient()
   const viewer = await getViewer()
-  let query = supabase.from("playtest_listings").select(PLAYTEST_SELECT).order("created_at", { ascending: false }).limit(40)
-  if (filters.ids) {
-    if (filters.ids.length === 0) return []
-    query = query.in("id", filters.ids)
-  } else if (!filters.mine) {
-    query = query.eq("status", "open")
-  }
-  if (filters.mine && viewer?.page) query = query.eq("page_id", viewer.page.id)
+  if (filters.ids && filters.ids.length === 0) return []
   if (filters.mine && !viewer?.page) return []
-  if (filters.state) query = query.eq("state", filters.state)
-  if (filters.location) query = query.eq("location_type", filters.location)
-  if (filters.pay === "paid") query = query.not("compensation", "is", null).neq("compensation", "")
-  if (filters.pay === "unpaid") query = query.or("compensation.is.null,compensation.eq.")
-  if (filters.q) {
-    const term = filters.q.replace(/[%_,]/g, " ").trim()
-    if (term) query = query.or(`title.ilike.%${term}%,game_title.ilike.%${term}%`)
-  }
-  const { data } = await query
-  return (data ?? []).map((row) => mapPlaytest(row as unknown as Record<string, unknown>)).filter((row): row is PlaytestCard => row !== null)
+  return loadPlaytests((select) => {
+    let query = supabase.from("playtest_listings").select(select).order("created_at", { ascending: false }).limit(40)
+    if (filters.ids) query = query.in("id", filters.ids)
+    else if (!filters.mine) query = query.eq("status", "open")
+    if (filters.mine && viewer?.page) query = query.eq("page_id", viewer.page.id)
+    if (filters.state) query = query.eq("state", filters.state)
+    if (filters.location) query = query.eq("location_type", filters.location)
+    if (filters.pay === "paid") query = query.not("compensation", "is", null).neq("compensation", "")
+    if (filters.pay === "unpaid") query = query.or("compensation.is.null,compensation.eq.")
+    if (filters.q) {
+      const term = filters.q.replace(/[%_,]/g, " ").trim()
+      if (term) query = query.or(`title.ilike.%${term}%,game_title.ilike.%${term}%`)
+    }
+    return query
+  })
 }
 
 export async function getPlaytestsByPage(pageId: string) {
   if (!isSupabaseConfigured()) return [] as PlaytestCard[]
   const supabase = await createClient()
-  const { data } = await supabase
-    .from("playtest_listings")
-    .select(PLAYTEST_SELECT)
-    .eq("page_id", pageId)
-    .order("created_at", { ascending: false })
-  return (data ?? []).map((row) => mapPlaytest(row as unknown as Record<string, unknown>)).filter((row): row is PlaytestCard => row !== null)
+  return loadPlaytests((select) =>
+    supabase.from("playtest_listings").select(select).eq("page_id", pageId).order("created_at", { ascending: false }),
+  )
 }
 
 function mapPlaytest(row: Record<string, unknown>): PlaytestCard | null {
@@ -326,7 +343,7 @@ function mapPlaytest(row: Record<string, unknown>): PlaytestCard | null {
     deadline: (row.deadline as string | null) ?? null,
     status: row.status === "closed" ? "closed" : "open",
     created_at: String(row.created_at),
-    page,
+    page: { ...page, verified: Boolean(page.verified) },
   }
 }
 
@@ -380,10 +397,21 @@ export async function searchPeople(filters: { q?: string; role?: string; state?:
 }
 
 export async function studioPagesFor(ownerIds: string[]) {
-  if (!isSupabaseConfigured() || ownerIds.length === 0) return [] as Array<{ owner_id: string; slug: string; name: string }>
+  const empty = [] as Array<{ owner_id: string; slug: string; name: string; verified: boolean }>
+  if (!isSupabaseConfigured() || ownerIds.length === 0) return empty
   const supabase = await createClient()
+  const rich = await supabase.from("pages").select("owner_id, slug, name, verified").in("owner_id", ownerIds)
+  if (!rich.error) {
+    return (rich.data ?? []).map((row) => {
+      const page = row as { owner_id: string; slug: string; name: string; verified?: boolean }
+      return { owner_id: page.owner_id, slug: page.slug, name: page.name, verified: Boolean(page.verified) }
+    })
+  }
   const { data } = await supabase.from("pages").select("owner_id, slug, name").in("owner_id", ownerIds)
-  return (data ?? []) as Array<{ owner_id: string; slug: string; name: string }>
+  return (data ?? []).map((row) => {
+    const page = row as { owner_id: string; slug: string; name: string }
+    return { owner_id: page.owner_id, slug: page.slug, name: page.name, verified: false }
+  })
 }
 
 export async function searchPages(filters: { q?: string; state?: string }) {
@@ -396,7 +424,7 @@ export async function searchPages(filters: { q?: string; state?: string }) {
     if (term) query = query.or(`name.ilike.%${term}%,headline.ilike.%${term}%`)
   }
   const { data } = await query
-  return (data ?? []) as StudioPage[]
+  return (data ?? []).map((row) => asPage(row))
 }
 
 export async function searchPosts(filters: { q?: string; postType?: string }) {
@@ -456,24 +484,23 @@ export async function getSuggestions() {
     followed = new Set((follows ?? []).map((row) => (row as { page_id: string }).page_id))
   }
 
-  const suggestions = ((pages ?? []) as StudioPage[])
+  const suggestions = (pages ?? [])
+    .map((row) => asPage(row))
     .filter((page) => page.owner_id !== viewer?.id)
     .slice(0, 4)
     .map((page) => ({ ...page, following: followed.has(page.id) }))
 
   const { data: featuredRows } = await supabase.from("pages").select("*").eq("featured", true).limit(4)
-  const featuredPage = ((featuredRows ?? []) as StudioPage[])[0] ?? null
+  const featuredPage = featuredRows?.[0] ? asPage(featuredRows[0]) : null
 
-  const { data: playtests } = await supabase
-    .from("playtest_listings")
-    .select(PLAYTEST_SELECT)
-    .eq("status", "open")
-    .order("created_at", { ascending: false })
-    .limit(3)
-
-  const openPlaytests = (playtests ?? [])
-    .map((row) => mapPlaytest(row as unknown as Record<string, unknown>))
-    .filter((row): row is PlaytestCard => row !== null)
+  const openPlaytests = await loadPlaytests((select) =>
+    supabase
+      .from("playtest_listings")
+      .select(select)
+      .eq("status", "open")
+      .order("created_at", { ascending: false })
+      .limit(3),
+  )
 
   const week: Array<{ kind: string; title: string; meta: string; href: string }> = []
   for (const listing of openPlaytests.slice(0, 2)) {

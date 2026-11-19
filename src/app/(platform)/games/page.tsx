@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Suspense } from "react"
 import { Badge } from "@/components/ui/badge"
+import { VerifiedName } from "@/components/verified-mark"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/person"
 import { TextField } from "@/components/form-kit"
@@ -77,14 +78,19 @@ async function Games({ searchParams }: { searchParams: Promise<{ title?: string 
             <Link key={listing.id} href="/opportunities?tab=playtests" className="block rounded-xl border bg-card p-4">
               <Badge variant="secondary">Playtest</Badge>
               <span className="mt-2 block font-semibold">{listing.title}</span>
-              <span className="block text-sm text-muted-foreground">{listing.page.name}</span>
+              <span className="block text-sm text-muted-foreground"><VerifiedName name={listing.page.name} verified={listing.page.verified} /></span>
             </Link>
           ))}
           {board.posts.map((post) => (
             <Link key={post.id} href={`/post/${post.id}`} className="block rounded-xl border bg-card p-4">
               <Badge variant="outline">{post.post_type === "job" ? "Job" : "Collab"}</Badge>
               <span className="mt-2 block font-semibold">{post.job_title || post.collab_title}</span>
-              <span className="block text-sm text-muted-foreground">{post.page?.name || post.author.display_name}</span>
+              <span className="block text-sm text-muted-foreground">
+                <VerifiedName
+                  name={post.page?.name || post.author.display_name}
+                  verified={post.page ? post.page.verified : post.author.verified}
+                />
+              </span>
             </Link>
           ))}
         </section>

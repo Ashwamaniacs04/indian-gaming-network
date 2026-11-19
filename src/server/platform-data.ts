@@ -239,19 +239,36 @@ export async function getGameBoard(title: string) {
   if (!isSupabaseConfigured() || term.length < 2) return empty
   await connection()
   const supabase = await createClient()
-  const { data: playtests } = await supabase
+  const playtestVerified = await supabase
     .from("playtest_listings")
-    .select("id, title, game_title, description, platforms, location_type, city, state, compensation, slots, deadline, status, created_at, page:pages!page_id (slug, name, logo_path)")
+    .select("id, title, game_title, description, platforms, location_type, city, state, compensation, slots, deadline, status, created_at, page:pages!page_id (slug, name, logo_path, verified)")
     .eq("status", "open")
     .ilike("game_title", term)
     .limit(20)
-  const { data: posts } = await supabase
+  const playtests = playtestVerified.error
+    ? (await supabase
+      .from("playtest_listings")
+      .select("id, title, game_title, description, platforms, location_type, city, state, compensation, slots, deadline, status, created_at, page:pages!page_id (slug, name, logo_path)")
+      .eq("status", "open")
+      .ilike("game_title", term)
+      .limit(20)).data
+    : playtestVerified.data
+  const postVerified = await supabase
     .from("posts")
-    .select("id, post_type, body, job_title, collab_title, game_title, created_at, closed_at, author:profiles!author_id (username, display_name, avatar_path, headline, role), page:pages!page_id (slug, name, logo_path)")
+    .select("id, post_type, body, job_title, collab_title, game_title, created_at, closed_at, author:profiles!author_id (username, display_name, avatar_path, headline, role, verified), page:pages!page_id (slug, name, logo_path, verified)")
     .in("post_type", ["job", "collab"])
     .is("closed_at", null)
     .ilike("game_title", term)
     .limit(20)
+  const posts = postVerified.error
+    ? (await supabase
+      .from("posts")
+      .select("id, post_type, body, job_title, collab_title, game_title, created_at, closed_at, author:profiles!author_id (username, display_name, avatar_path, headline, role), page:pages!page_id (slug, name, logo_path)")
+      .in("post_type", ["job", "collab"])
+      .is("closed_at", null)
+      .ilike("game_title", term)
+      .limit(20)).data
+    : postVerified.data
   const postRows = posts ?? await (async () => {
     const retry = await supabase
       .from("posts")
@@ -293,7 +310,7 @@ function mapPlaytest(row: Record<string, unknown>): PlaytestCard | null {
     deadline: (row.deadline as string | null) ?? null,
     status: row.status === "closed" ? "closed" : "open",
     created_at: String(row.created_at),
-    page,
+    page: { ...page, verified: Boolean(page.verified) },
   }
 }
 
@@ -304,7 +321,9 @@ function mapLitePost(row: Record<string, unknown>): PostCard {
     avatar_path: null,
     headline: null,
     role: "gamer",
+    verified: false,
   }
+  const page = relation<NonNullable<PostCard["page"]>>(row.page)
   return {
     id: String(row.id),
     post_type: row.post_type as PostCard["post_type"],
@@ -320,8 +339,8 @@ function mapLitePost(row: Record<string, unknown>): PostCard {
     created_at: String(row.created_at ?? ""),
     closed_at: (row.closed_at as string | null) ?? null,
     image_expired: false,
-    author,
-    page: relation<PostCard["page"]>(row.page),
+    author: { ...author, verified: Boolean(author.verified) },
+    page: page ? { ...page, verified: Boolean(page.verified) } : null,
     like_count: 0,
     comment_count: 0,
     liked_by_me: false,
@@ -388,6 +407,44 @@ export async function getReports() {
       reporter_username: reporter?.username || "",
     }
   })
+}
+
+export type AdminVerification = {
+  kind: "profile" | "page"
+  target_id: string
+  label: string
+  detail: string
+  government_name: string
+  verified_at: string
+}
+
+export async function getAdminVerifications() {
+  const empty = { rows: [] as AdminVerification[], missing: false }
+  if (!isSupabaseConfigured()) return empty
+  const viewer = await getViewer()
+  if (!viewer?.isAdmin) return empty
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("admin_list_verifications")
+  if (error || !Array.isArray(data)) return { rows: [], missing: true }
+  const rows = data.map((row) => {
+    const record = row as {
+      kind?: string
+      target_id?: string
+      label?: string
+      detail?: string
+      government_name?: string
+      verified_at?: string
+    }
+    return {
+      kind: record.kind === "page" ? "page" as const : "profile" as const,
+      target_id: String(record.target_id ?? ""),
+      label: String(record.label ?? ""),
+      detail: String(record.detail ?? ""),
+      government_name: String(record.government_name ?? ""),
+      verified_at: String(record.verified_at ?? ""),
+    }
+  }).filter((row) => row.target_id)
+  return { rows, missing: false }
 }
 
 export async function getProfileById(id: string) {

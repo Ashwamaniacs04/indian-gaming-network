@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { VerifiedName } from "@/components/verified-mark"
 import { initials, publicStorageUrl } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -48,17 +49,19 @@ export function PersonLink({
   name,
   path,
   meta,
+  verified = false,
 }: {
   href: string
   name: string
   path: string | null
   meta?: string | null
+  verified?: boolean
 }) {
   return (
     <Link href={href} className="flex min-w-0 items-center gap-3">
       <UserAvatar name={name} path={path} />
       <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold">{name}</span>
+        <VerifiedName name={name} verified={verified} className="text-sm font-semibold" />
         {meta ? <span className="block truncate text-xs text-muted-foreground">{meta}</span> : null}
       </span>
     </Link>

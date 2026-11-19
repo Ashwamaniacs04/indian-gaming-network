@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PostCard } from "@/components/post-card"
 import { EmptyState, UserAvatar } from "@/components/person"
+import { VerifiedName } from "@/components/verified-mark"
 import { followPage, unfollowPage, expressInterest } from "@/server/actions/social"
 
 import { getViewer } from "@/lib/auth"
@@ -55,7 +56,7 @@ async function PageView({ params }: { params: Promise<{ slug: string }> }) {
           <UserAvatar name={page.name} path={page.logo_path} className="-mt-10 size-20 bg-card ring-4 ring-background" />
           <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-semibold">{page.name}</h1>
+              <h1 className="text-2xl font-semibold"><VerifiedName name={page.name} verified={page.verified} /></h1>
               {page.headline ? <p className="mt-1 text-sm">{page.headline}</p> : null}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">

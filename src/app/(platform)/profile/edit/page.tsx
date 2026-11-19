@@ -1,31 +1,62 @@
 import { Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { addExperience, addPortfolio, deleteExperience, deletePortfolio, updateProfile } from "@/server/actions/profile"
+import { startDigilocker } from "@/server/actions/verification"
 import { ActionForm, AreaField, Field, NativeSelect, SubmitButton, TextField } from "@/components/form-kit"
 import { AVAILABILITY_OPTIONS, INDIAN_STATES, LANGUAGES, PLATFORMS } from "@/lib/constants"
 import { formatMonth } from "@/lib/format"
 import { requireUser } from "@/lib/auth"
+import { ID_DOCUMENT_LABELS, ID_DOCUMENT_TYPES, digilockerReady } from "@/lib/verification"
 import { getExperience, getPortfolio } from "@/server/queries"
 
 export const metadata = { title: "Edit profile" }
 
-export default function EditProfilePage() {
+const VERIFICATION_NOTES: Record<string, string> = {
+  done: "Your profile has the grey tick.",
+  not_setup: "Verification is not set up yet.",
+  cancelled: "DigiLocker was cancelled. You can try again.",
+  failed: "Verification could not be confirmed.",
+  sql: "Verification is not ready yet. Run the new SQL in Supabase.",
+  signin: "Sign in again, then try DigiLocker.",
+  no_document: "DigiLocker did not return a usable ID.",
+}
+
+export default function EditProfilePage({ searchParams }: { searchParams: Promise<{ verification?: string }> }) {
   return (
     <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-card" />}>
-      <Editor />
+      <Editor searchParams={searchParams} />
     </Suspense>
   )
 }
 
-async function Editor() {
+async function Editor({ searchParams }: { searchParams: Promise<{ verification?: string }> }) {
   const viewer = await requireUser()
+  const params = await searchParams
   const profile = viewer.profile
+  const verificationNote = profile.verified
+    ? "Your profile has the grey tick."
+    : VERIFICATION_NOTES[params.verification ?? ""] ?? (digilockerReady() ? null : "Verification is not set up yet.")
   const [portfolio, experience] = await Promise.all([getPortfolio(viewer.id), getExperience(viewer.id)])
   const details = profile.role_details
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Edit profile</h1>
+      <section className="rounded-xl border bg-card p-4">
+        <h2 className="text-sm font-semibold">Verified tick</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Optional. Confirm one government ID in DigiLocker. The ID number stays private, and the tick is grey.</p>
+        {verificationNote ? <p className="mt-3 text-sm">{verificationNote}</p> : null}
+        {profile.verified ? null : (
+          <form action={startDigilocker} className="mt-4 space-y-4">
+            <Field label="Government ID">
+              <NativeSelect name="document_type" defaultValue="aadhaar">
+                {ID_DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{ID_DOCUMENT_LABELS[type]}</option>)}
+              </NativeSelect>
+            </Field>
+            <SubmitButton>Verify with DigiLocker</SubmitButton>
+          </form>
+        )}
+      </section>
       <section className="rounded-xl border bg-card p-4">
         <ActionForm action={updateProfile} className="space-y-4">
           <Field label="Name"><TextField name="display_name" required defaultValue={profile.display_name} /></Field>

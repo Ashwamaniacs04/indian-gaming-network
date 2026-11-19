@@ -69,6 +69,11 @@ export function friendlyDbError(message: string) {
   if (lower.includes("payment is not set up")) {
     return "Payment is not set up yet. Add the Razorpay secret, then try again."
   }
+  if (lower.includes("verification is not set up")) {
+    return "Verification is not set up yet."
+  }
+  if (lower.includes("create your studio page first")) return "Create your studio page first."
+  if (lower.includes("verification could not")) return "Verification could not be confirmed."
   if (lower.includes("payment could not be confirmed")) return "Payment could not be confirmed."
   if (lower.includes("not waiting for payment")) return "This trailer is not waiting for payment."
   if (lower.includes("row-level security") || lower.includes("permission denied")) {

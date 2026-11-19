@@ -5,7 +5,8 @@ import { roleLabel } from "@/lib/constants"
 import { formatDate } from "@/lib/format"
 import { requireUser } from "@/lib/auth"
 import { adminDeleteLogin } from "@/server/actions/platform"
-import { getAdminAccounts, getReports } from "@/server/platform-data"
+import { adminRevokeVerification } from "@/server/actions/verification"
+import { getAdminAccounts, getAdminVerifications, getReports } from "@/server/platform-data"
 import type { Role } from "@/lib/types"
 
 export const metadata = { title: "Admin" }
@@ -28,7 +29,7 @@ async function Admin() {
       </section>
     )
   }
-  const [accounts, reports] = await Promise.all([getAdminAccounts(), getReports()])
+  const [accounts, reports, verifications] = await Promise.all([getAdminAccounts(), getReports(), getAdminVerifications()])
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Admin</h1>
@@ -51,6 +52,27 @@ async function Admin() {
                     </form>
                   ) : null}
                 </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="rounded-xl border bg-card p-4">
+        <h2 className="text-sm font-semibold">Verification</h2>
+        <p className="mt-1 text-xs text-muted-foreground">ID and GST details stay on this page. Removing a tick does not grant a new one.</p>
+        {verifications.missing ? <p className="mt-2 text-sm text-muted-foreground">Verified profiles and pages appear here after the verification SQL has been run.</p> : verifications.rows.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">No verified profiles or pages yet.</p> : (
+          <ul className="mt-3 divide-y">
+            {verifications.rows.map((row) => (
+              <li key={`${row.kind}-${row.target_id}`} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{row.label}</span>
+                  <span className="block text-xs text-muted-foreground">{row.kind === "page" ? "Page" : "Profile"} · {row.detail} · {row.government_name}{row.verified_at ? ` · ${formatDate(row.verified_at)}` : ""}</span>
+                </span>
+                <form action={adminRevokeVerification}>
+                  <input type="hidden" name="kind" value={row.kind} />
+                  <input type="hidden" name="target_id" value={row.target_id} />
+                  <Button type="submit" size="sm" variant="outline">Remove</Button>
+                </form>
               </li>
             ))}
           </ul>

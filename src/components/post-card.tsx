@@ -43,7 +43,7 @@ export function PostCard({
   return (
     <article className="overflow-hidden rounded-xl border bg-card shadow-sm">
       <div className="p-4 pb-0">
-        <PersonLink href={authorHref} name={authorName} path={authorPath} meta={meta} />
+        <PersonLink href={authorHref} name={authorName} path={authorPath} meta={meta} verified={post.page ? post.page.verified : post.author.verified} />
         {pinned ? <Badge className="mt-2" variant="outline">Pinned</Badge> : null}
       </div>
 

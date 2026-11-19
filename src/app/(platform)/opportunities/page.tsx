@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Suspense } from "react"
 import { Badge } from "@/components/ui/badge"
+import { VerifiedMark, VerifiedName } from "@/components/verified-mark"
 import { Button } from "@/components/ui/button"
 import { EmptyState, UserAvatar } from "@/components/person"
 import { PostCard } from "@/components/post-card"
@@ -132,7 +133,9 @@ async function PlaytestList({
           <article key={listing.id} className="rounded-xl border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <Link href={`/p/${listing.page.slug}`} className="text-xs font-medium text-primary">{listing.page.name}</Link>
+                <Link href={`/p/${listing.page.slug}`} className="text-xs font-medium text-primary">
+                  <VerifiedName name={listing.page.name} verified={listing.page.verified} />
+                </Link>
                 <h2 className="text-lg font-semibold">{listing.title}</h2>
                 <p className="text-sm text-muted-foreground">
                   {listing.game_title} · {listing.location_type} · {locationLabel(listing.city, listing.state) || "India"}
@@ -233,7 +236,10 @@ async function Saved({
       {playtests.map((listing) => (
         <article key={listing.id} className="rounded-xl border bg-card p-4">
           <h2 className="text-sm font-semibold">{listing.title}</h2>
-          <p className="text-xs text-muted-foreground">{listing.game_title} · {listing.page.name}</p>
+          <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+            <span className="truncate">{listing.game_title} · {listing.page.name}</span>
+            {listing.page.verified ? <VerifiedMark /> : null}
+          </p>
         </article>
       ))}
       {posts.map((post) => <PostCard key={post.id} post={post} viewer={viewer} saved showInterest />)}

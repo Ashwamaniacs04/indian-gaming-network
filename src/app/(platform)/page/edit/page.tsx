@@ -1,9 +1,11 @@
 import Link from "next/link"
 import { Suspense } from "react"
 import { savePage } from "@/server/actions/profile"
+import { verifyGst } from "@/server/actions/verification"
 import { ActionForm, AreaField, Field, NativeSelect, SubmitButton, TextField } from "@/components/form-kit"
 import { INDIAN_STATES } from "@/lib/constants"
 import { requireUser } from "@/lib/auth"
+import { gstReady } from "@/lib/verification"
 import { getPageByOwner } from "@/server/queries"
 
 export const metadata = { title: "Edit page" }
@@ -56,6 +58,23 @@ async function Editor() {
         <Field label="Banner"><input name="banner" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="text-sm" /></Field>
         <SubmitButton size="lg">{page ? "Save page" : "Create page"}</SubmitButton>
       </ActionForm>
+      <div className="mt-6 border-t pt-4">
+        <h2 className="text-sm font-semibold">Verified tick</h2>
+        {page ? (
+          <>
+            <p className="mt-1 text-sm text-muted-foreground">Optional. Confirm an active GST number. The number stays private, and the tick is grey.</p>
+            {page.verified ? <p className="mt-3 text-sm">This page has the grey tick.</p> : (
+              <>
+                {gstReady() ? null : <p className="mt-3 text-sm">Verification is not set up yet.</p>}
+                <ActionForm action={verifyGst} className="mt-4 space-y-4">
+                  <Field label="GST number"><TextField name="gstin" required autoComplete="off" /></Field>
+                  <SubmitButton>Verify GST</SubmitButton>
+                </ActionForm>
+              </>
+            )}
+          </>
+        ) : <p className="mt-2 text-sm text-muted-foreground">Create your studio page first.</p>}
+      </div>
     </section>
   )
 }

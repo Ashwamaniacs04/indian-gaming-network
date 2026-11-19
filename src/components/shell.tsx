@@ -10,6 +10,7 @@ import { BrandLockup } from "@/components/brand"
 import { ThemeSwitch } from "@/components/theme-switch"
 import { NotificationListener } from "@/components/notification-listener"
 import { UserAvatar } from "@/components/person"
+import { VerifiedMark, VerifiedName } from "@/components/verified-mark"
 import { Button } from "@/components/ui/button"
 import { profileCardGap } from "@/lib/card-gap"
 import { roleLabel } from "@/lib/constants"
@@ -90,7 +91,7 @@ export function Shell({
               <Link href={`/u/${viewer.profile.username}`} className="flex items-center gap-3 rounded-xl border bg-card p-3">
                 <UserAvatar name={viewer.profile.display_name} path={viewer.profile.avatar_path} />
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold">{viewer.profile.display_name}</span>
+                  <VerifiedName name={viewer.profile.display_name} verified={viewer.profile.verified} className="text-sm font-semibold" />
                   <span className="block truncate text-xs text-muted-foreground">{roleLabel(viewer.profile.role)}</span>
                 </span>
               </Link>
@@ -243,7 +244,7 @@ function Rail({ suggestions }: { suggestions: RailSuggestions }) {
               <Link href={`/p/${page.slug}`} className="flex min-w-0 items-center gap-2">
                 <UserAvatar name={page.name} path={page.logo_path} className="size-8" />
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium">{page.name}</span>
+                  <VerifiedName name={page.name} verified={page.verified} className="text-sm font-medium" />
                   <span className="block truncate text-xs text-muted-foreground">{page.headline || locationLabel(page.city, page.state) || "Studio"}</span>
                 </span>
               </Link>
@@ -267,7 +268,10 @@ function Rail({ suggestions }: { suggestions: RailSuggestions }) {
               <UserAvatar name={listing.page.name} path={listing.page.logo_path} className="size-8" />
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium">{listing.title}</span>
-                <span className="block truncate text-xs text-muted-foreground">{listing.game_title} · {listing.page?.name}</span>
+                <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                  <span className="truncate">{listing.game_title} · {listing.page.name}</span>
+                  {listing.page.verified ? <VerifiedMark /> : null}
+                </span>
               </span>
             </Link>
           ))}
@@ -275,7 +279,9 @@ function Rail({ suggestions }: { suggestions: RailSuggestions }) {
       </section>
       <section className="rounded-xl border bg-card p-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">{suggestions.featured ? suggestions.featured.name : "Featured page"}</h2>
+          <h2 className="min-w-0 text-sm font-semibold">
+            {suggestions.featured ? <VerifiedName name={suggestions.featured.name} verified={suggestions.featured.verified} /> : "Featured page"}
+          </h2>
           <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Sponsored</span>
         </div>
         {suggestions.featured ? (

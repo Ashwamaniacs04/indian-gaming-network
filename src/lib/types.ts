@@ -53,6 +53,7 @@ export type Profile = {
   socials: Socials
   role_details: RoleDetails
   onboarding_complete: boolean
+  verified: boolean
   created_at: string | null
 }
 
@@ -72,6 +73,7 @@ export type StudioPage = {
   contact_email: string | null
   games: string[]
   specialties: string[]
+  verified: boolean
 }
 
 export type ViewerPage = {
@@ -110,11 +112,13 @@ export type PostCard = {
     avatar_path: string | null
     headline: string | null
     role: Role
+    verified: boolean
   }
   page: {
     slug: string
     name: string
     logo_path: string | null
+    verified: boolean
   } | null
   like_count: number
   comment_count: number
@@ -169,6 +173,7 @@ export type PlaytestCard = {
     slug: string
     name: string
     logo_path: string | null
+    verified: boolean
   }
 }
 

@@ -62,6 +62,7 @@ export function mapProfile(row: Record<string, unknown>): Profile {
     socials: social,
     role_details: roleDetails,
     onboarding_complete: Boolean(row.onboarding_complete),
+    verified: Boolean(row.verified),
     created_at: (row.created_at as string | null) ?? null,
   }
 }

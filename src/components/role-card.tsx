@@ -1,11 +1,12 @@
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { UserAvatar } from "@/components/person"
+import { VerifiedName } from "@/components/verified-mark"
 import { roleLabel } from "@/lib/constants"
 import { locationLabel } from "@/lib/format"
 import type { Profile } from "@/lib/types"
 
-type StudioLink = { name: string; slug: string }
+type StudioLink = { name: string; slug: string; verified?: boolean }
 type FactGroup = { label: string; items: string[] }
 
 export function RolePlayerCard({
@@ -26,7 +27,7 @@ export function RolePlayerCard({
         <div className="flex items-center gap-3">
           <UserAvatar name={profile.display_name} path={profile.avatar_path} />
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">{profile.display_name}</span>
+            <VerifiedName name={profile.display_name} verified={profile.verified} className="text-sm font-semibold" />
             <span className="block truncate text-xs text-muted-foreground">
               {roleLabel(profile.role)}{place ? ` · ${place}` : ""}
             </span>
@@ -56,9 +57,9 @@ export function RolePlayerCard({
       )}
       {profile.role === "studio" && page ? (
         href ? (
-          <p className="mt-2 text-xs text-primary">{page.name}</p>
+          <p className="mt-2 text-xs text-primary"><VerifiedName name={page.name} verified={page.verified} /></p>
         ) : (
-          <Link href={`/p/${page.slug}`} className="mt-2 block text-sm font-medium text-primary">{page.name}</Link>
+          <Link href={`/p/${page.slug}`} className="mt-2 block text-sm font-medium text-primary"><VerifiedName name={page.name} verified={page.verified} /></Link>
         )
       ) : null}
       {profile.role === "studio" && !page && !href ? (

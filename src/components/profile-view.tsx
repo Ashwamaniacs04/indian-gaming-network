@@ -5,6 +5,7 @@ import { ActionForm, SubmitButton } from "@/components/form-kit"
 import { EmptyState, PersonLink, UserAvatar } from "@/components/person"
 import { PostCard, ReportBox } from "@/components/post-card"
 import { RolePlayerCard } from "@/components/role-card"
+import { VerifiedName } from "@/components/verified-mark"
 import { roleLabel } from "@/lib/constants"
 import { formatMonth, locationLabel, publicStorageUrl } from "@/lib/format"
 import { acceptConnection, removeConnection, requestConnection } from "@/server/actions/social"
@@ -43,7 +44,7 @@ export function ProfileView({
           <UserAvatar name={profile.display_name} path={profile.avatar_path} className="-mt-10 size-20 bg-card ring-4 ring-background" />
           <div className="mt-3 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold">{profile.display_name}</h1>
+              <h1 className="text-2xl font-semibold"><VerifiedName name={profile.display_name} verified={profile.verified} /></h1>
               <p className="text-sm text-muted-foreground">@{profile.username}</p>
             </div>
             {isOwner ? (
@@ -79,7 +80,7 @@ export function ProfileView({
         </section>
       ) : null}
 
-      <RolePlayerCard profile={profile} page={page ? { name: page.name, slug: page.slug } : null} />
+      <RolePlayerCard profile={profile} page={page ? { name: page.name, slug: page.slug, verified: page.verified } : null} />
 
       {(profile.role === "cosplay_artist" || profile.role === "streamer" || portfolio.length > 0) ? (
         <section className="rounded-xl border bg-card p-4">

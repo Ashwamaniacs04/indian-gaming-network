@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Suspense } from "react"
 import { Badge } from "@/components/ui/badge"
+import { VerifiedMark, VerifiedName } from "@/components/verified-mark"
 import { Button } from "@/components/ui/button"
 import { EmptyState, UserAvatar } from "@/components/person"
 import { PostCard } from "@/components/post-card"
@@ -138,7 +139,7 @@ async function Pages({ q, state }: { q: string; state?: string }) {
         <Link key={page.id} href={`/p/${page.slug}`} className="flex items-center gap-3 rounded-xl border bg-card p-3">
           <UserAvatar name={page.name} path={page.logo_path} />
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">{page.name}</span>
+            <VerifiedName name={page.name} verified={page.verified} className="text-sm font-semibold" />
             <span className="block truncate text-xs text-muted-foreground">{page.headline || locationLabel(page.city, page.state) || "Studio"}</span>
           </span>
         </Link>
@@ -162,7 +163,10 @@ async function Playtests({ q }: { q: string }) {
         <Link key={listing.id} href="/opportunities?tab=playtests" className="block rounded-xl border bg-card p-3">
           <span className="flex items-center justify-between gap-2">
             <span className="text-sm font-semibold">{listing.title}</span>
-            <Badge variant="secondary">{listing.page.name}</Badge>
+            <span className="flex shrink-0 items-center gap-1">
+              <Badge variant="secondary">{listing.page.name}</Badge>
+              {listing.page.verified ? <VerifiedMark /> : null}
+            </span>
           </span>
           <span className="mt-1 block text-xs text-muted-foreground">{listing.game_title}</span>
         </Link>
